@@ -1,0 +1,17 @@
+node_modules
+.next
+out
+dist
+.env
+.env.local
+.DS_Store
+*.log
+coverage
+.vscode
+.idea
+*.db
+*.db-journal
+*.sqlite
+prisma/dev.db*
+public/uploads/*
+!public/uploads/.gitkeep

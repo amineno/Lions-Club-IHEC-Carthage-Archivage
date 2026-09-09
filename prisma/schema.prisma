@@ -1,0 +1,179 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Mandat {
+  id        String    @id @default(cuid())
+  libelle   String    @unique
+  dateDebut DateTime
+  dateFin   DateTime
+  actif     Boolean   @default(false)
+  createdAt DateTime  @default(now())
+
+  members   Member[]
+  minutes   MeetingMinute[]
+  events    Event[]
+}
+
+model User {
+  id          String         @id @default(cuid())
+  email       String         @unique
+  password    String
+  nom         String
+  role        String         @default("membre")
+  statut      Boolean        @default(true)
+  avatar      String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  memberId    String?        @unique
+  member      Member?        @relation(fields: [memberId], references: [id])
+  documents   Document[]     @relation("UploadedBy")
+  notifications Notification[]
+  auditLogs   AuditLog[]
+}
+
+model Member {
+  id            String         @id @default(cuid())
+  nom           String
+  roleClub      String         @default("Membre")
+  email         String?        @unique
+  telephone     String?
+  filiere       String?
+  dateAdhesion  DateTime       @default(now())
+  photo         String?
+  statut        String         @default("ACTIF")
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  mandatId      String?
+  mandat        Mandat?        @relation(fields: [mandatId], references: [id])
+  user          User?
+  eventsResp    Event[]        @relation("Responsable")
+  documents     Document[]     @relation("MemberDocs")
+}
+
+model MeetingMinute {
+  id         String         @id @default(cuid())
+  titre      String
+  dateReunion DateTime
+  type       String
+  statut     String         @default("VALIDE")
+  tags       String         @default("[]")
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  mandatId   String?
+  mandat     Mandat?        @relation(fields: [mandatId], references: [id])
+  documentId String?        @unique
+  document   Document?      @relation(fields: [documentId], references: [id])
+}
+
+model Event {
+  id              String         @id @default(cuid())
+  nom             String
+  description     String?
+  date            DateTime
+  statut          String         @default("PLANIFIE")
+  type            String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  responsableId   String?
+  responsable     Member?        @relation("Responsable", fields: [responsableId], references: [id])
+  mandatId        String?
+  mandat          Mandat?        @relation(fields: [mandatId], references: [id])
+  documents       Document[]     @relation("EventDocs")
+  partenaires     EventPartner[]
+}
+
+model Document {
+  id          String         @id @default(cuid())
+  nom         String
+  section     String
+  typeFichier String
+  mimeType    String
+  taille      Int
+  tags        String         @default("[]")
+  fileUrl     String
+  storagePath String
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  uploaderId  String
+  uploader    User           @relation("UploadedBy", fields: [uploaderId], references: [id])
+  memberId    String?
+  member      Member?        @relation("MemberDocs", fields: [memberId], references: [id])
+  eventId     String?
+  event       Event?         @relation("EventDocs", fields: [eventId], references: [id])
+  partnerId   String?
+  partner     Partner?       @relation(fields: [partnerId], references: [id])
+
+  minute      MeetingMinute?
+  eventPartners EventPartner[]
+}
+
+model Partner {
+  id              String         @id @default(cuid())
+  nomOrganisation String
+  type            String
+  contactNom      String?
+  contactEmail    String?
+  contactTelephone String?
+  dateConvention  DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  documents       Document[]
+  events          EventPartner[]
+}
+
+model EventPartner {
+  eventId              String
+  partnerId            String
+  conventionDocumentId String?
+  conventionDocument   Document? @relation(fields: [conventionDocumentId], references: [id])
+
+  event                Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  partner              Partner  @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  @@id([eventId, partnerId])
+}
+
+model Notification {
+  id         String   @id @default(cuid())
+  message    String
+  type       String
+  lu         Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  entityType String?
+  entityId   String?
+}
+
+model AuditLog {
+  id         String      @id @default(cuid())
+  action     String
+  entityType String
+  entityId   String?
+  details    String?
+  createdAt  DateTime    @default(now())
+
+  userId     String
+  user       User        @relation(fields: [userId], references: [id])
+}
+
+model Tag {
+  id        String   @id @default(cuid())
+  nom       String   @unique
+  couleur   String?
+  createdAt DateTime @default(now())
+}

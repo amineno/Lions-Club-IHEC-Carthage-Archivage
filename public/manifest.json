@@ -1,0 +1,20 @@
+{
+  "name": "Lions Club IHEC Carthage — Archives",
+  "short_name": "Lions Archives",
+  "description": "Plateforme officielle d'archivage du Lions Club IHEC Carthage. Centralisez et sécurisez l'ensemble du patrimoine documentaire.",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#0A2E52",
+  "theme_color": "#0A2E52",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "fr-FR",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

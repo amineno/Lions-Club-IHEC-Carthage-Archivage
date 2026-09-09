@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#E8C547"/>
+      <stop offset="50%" stop-color="#C9A227"/>
+      <stop offset="100%" stop-color="#8F6B10"/>
+    </linearGradient>
+    <radialGradient id="navyBg" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#1A4F85"/>
+      <stop offset="100%" stop-color="#0A2E52"/>
+    </radialGradient>
+  </defs>
+  <!-- Background circle -->
+  <rect width="512" height="512" rx="100" fill="url(#navyBg)" />
+  <!-- Golden circular badge -->
+  <circle cx="256" cy="256" r="180" fill="none" stroke="url(#goldGrad)" stroke-width="14" />
+  <circle cx="256" cy="256" r="160" fill="none" stroke="url(#goldGrad)" stroke-width="4" stroke-dasharray="6,6" opacity="0.6" />
+  
+  <!-- Central Emblem Star & Ring -->
+  <g transform="translate(106, 106) scale(6.8)">
+    <path d="M22 4l4.5 9 10 1.5-7.2 7 1.7 9.9L22 27l-9 4.4 1.7-9.9L7.5 14.5l10-1.5z" fill="url(#goldGrad)" />
+    <circle cx="22" cy="22" r="5.5" fill="#0A2E52" stroke="url(#goldGrad)" stroke-width="1.8" />
+  </g>
+</svg>
