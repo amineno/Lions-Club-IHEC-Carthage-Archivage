@@ -9,9 +9,7 @@ dist
 coverage
 .vscode
 .idea
-*.db
 *.db-journal
-*.sqlite
-prisma/dev.db*
+*.sqlite-journal
 public/uploads/*
 !public/uploads/.gitkeep

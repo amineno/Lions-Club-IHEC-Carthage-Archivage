@@ -7,9 +7,12 @@ const nextConfig = {
       { protocol: "https", hostname: "picsum.photos" },
     ],
   },
-    experimental: {
+  experimental: {
     serverActions: {
       bodySizeLimit: "55mb",
+    },
+    outputFileTracingIncludes: {
+      "/**": ["./prisma/dev.db"],
     },
   },
   eslint: {
