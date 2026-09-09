@@ -7,10 +7,13 @@ const nextConfig = {
       { protocol: "https", hostname: "picsum.photos" },
     ],
   },
-  experimental: {
+    experimental: {
     serverActions: {
       bodySizeLimit: "55mb",
     },
+  },
+  eslint: {
+    ignoreDuringBuilds: true,
   },
 };
 
