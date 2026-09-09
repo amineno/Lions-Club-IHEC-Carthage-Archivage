@@ -34,6 +34,7 @@ export default function RootLayout({
   return (
     <html lang="fr">
       <head>
+        <meta name="mobile-web-app-capable" content="yes" />
         <link
           href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap"
           rel="stylesheet"
