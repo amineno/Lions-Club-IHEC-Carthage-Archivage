@@ -27,12 +27,20 @@ export default function LoginPageClient() {
         redirect: false,
       });
       if (res?.error) {
-        setError(res.error === "Compte inactif" ? "Compte inactif — contactez le secrétaire" : "Identifiants invalides");
+        console.warn("[Login] Sign-in error response:", res.error);
+        if (res.error === "Compte inactif") {
+          setError("Compte inactif — contactez le secrétaire");
+        } else if (res.error === "Configuration") {
+          setError("Erreur de configuration du serveur d'authentification.");
+        } else {
+          setError("Identifiants invalides (vérifiez l'email et le mot de passe).");
+        }
       } else {
         window.location.href = "/dashboard";
       }
-    } catch {
-      setError("Erreur de connexion");
+    } catch (err) {
+      console.error("[Login] Unexpected login exception:", err);
+      setError("Erreur de connexion au serveur. Vérifiez la console de votre navigateur.");
     } finally {
       setLoading(false);
     }

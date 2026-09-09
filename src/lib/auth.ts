@@ -1,6 +1,5 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
-import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "./prisma";
 import bcrypt from "bcryptjs";
 import type { Role } from "@/types";
@@ -26,7 +25,6 @@ declare module "next-auth" {
 
 export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
   trustHost: true,
-  adapter: PrismaAdapter(prisma),
   providers: [
     Credentials({
       name: "credentials",
@@ -37,33 +35,51 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
 
-        const user = await prisma.user.findUnique({
-          where: { email: String(credentials.email).toLowerCase() },
-        });
+        try {
+          const user = await prisma.user.findUnique({
+            where: { email: String(credentials.email).toLowerCase() },
+          });
 
-        if (!user) return null;
-        if (!user.statut) throw new Error("Compte inactif");
+          if (!user) {
+            console.warn(`[Auth] User not found for email: ${credentials.email}`);
+            return null;
+          }
 
-        const passwordValid = await bcrypt.compare(
-          String(credentials.password),
-          user.password
-        );
+          if (!user.statut) {
+            console.warn(`[Auth] Inactive account: ${credentials.email}`);
+            throw new Error("Compte inactif");
+          }
 
-        if (!passwordValid) return null;
+          const passwordValid = await bcrypt.compare(
+            String(credentials.password),
+            user.password
+          );
 
-        return {
-          id: user.id,
-          email: user.email,
-          nom: user.nom,
-          role: user.role as Role,
-          statut: user.statut,
-          avatar: user.avatar,
-        };
+          if (!passwordValid) {
+            console.warn(`[Auth] Invalid password for: ${credentials.email}`);
+            return null;
+          }
+
+          return {
+            id: user.id,
+            email: user.email,
+            nom: user.nom,
+            role: user.role as Role,
+            statut: user.statut,
+            avatar: user.avatar,
+          };
+        } catch (error) {
+          console.error("[Auth] Database/authorize error during login:", error);
+          throw error;
+        }
       },
     }),
   ],
   session: { strategy: "jwt" },
-  secret: process.env.NEXTAUTH_SECRET,
+  secret:
+    process.env.AUTH_SECRET ||
+    process.env.NEXTAUTH_SECRET ||
+    "lions_club_ihec_carthage_default_auth_secret_2026_xyz",
   pages: {
     signIn: "/login",
   },

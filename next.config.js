@@ -12,7 +12,9 @@ const nextConfig = {
       bodySizeLimit: "55mb",
     },
     outputFileTracingIncludes: {
-      "/**": ["./prisma/dev.db"],
+      "/*": ["./prisma/dev.db"],
+      "/**/*": ["./prisma/dev.db"],
+      "/api/**/*": ["./prisma/dev.db"],
     },
   },
   eslint: {
