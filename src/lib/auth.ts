@@ -25,6 +25,7 @@ declare module "next-auth" {
 }
 
 export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
+  trustHost: true,
   adapter: PrismaAdapter(prisma),
   providers: [
     Credentials({
@@ -93,8 +94,12 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
       };
       return session;
     },
-    async redirect({ baseUrl }) {
-      return `${baseUrl}/dashboard`;
+    async redirect({ url, baseUrl }) {
+      if (url?.startsWith("/")) return url;
+      try {
+        if (new URL(url).origin === baseUrl) return url;
+      } catch {}
+      return "/dashboard";
     },
   },
 });

@@ -22,16 +22,17 @@ export default function LoginPageClient() {
     setLoading(true);
     try {
       const res = await signIn("credentials", {
-        email,
+        email: email.trim(),
         password,
         redirect: false,
       });
       if (res?.error) {
         setError(res.error === "Compte inactif" ? "Compte inactif — contactez le secrétaire" : "Identifiants invalides");
-      } else if (res?.ok) {
-        router.push("/dashboard");
-        router.refresh();
+      } else {
+        window.location.href = "/dashboard";
       }
+    } catch {
+      setError("Erreur de connexion");
     } finally {
       setLoading(false);
     }
