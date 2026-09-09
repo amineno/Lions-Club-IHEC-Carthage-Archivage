@@ -127,9 +127,14 @@ export default function Topbar({ onToggleSidebar }: TopbarProps) {
       <ConfirmModal
         open={showLogoutModal}
         onClose={() => setShowLogoutModal(false)}
-        onConfirm={() => {
+        onConfirm={async () => {
           setShowLogoutModal(false);
-          signOut({ callbackUrl: "/login" });
+          try {
+            await signOut({ redirect: false });
+          } catch (e) {
+            console.error("Logout error:", e);
+          }
+          window.location.href = "/login";
         }}
         title="Confirmer la déconnexion"
         message="Êtes-vous sûr de vouloir quitter votre session ? Vous devrez saisir à nouveau vos identifiants pour accéder à la plateforme."

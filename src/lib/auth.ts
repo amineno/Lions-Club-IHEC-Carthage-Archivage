@@ -111,11 +111,25 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
       return session;
     },
     async redirect({ url, baseUrl }) {
-      if (url?.startsWith("/")) return `${baseUrl}${url}`;
+      const siteUrl =
+        process.env.NEXTAUTH_URL ||
+        process.env.AUTH_URL ||
+        (process.env.VERCEL_PROJECT_PRODUCTION_URL
+          ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+          : baseUrl);
+
+      if (url?.startsWith("/")) return `${siteUrl}${url}`;
       try {
-        if (new URL(url).origin === baseUrl) return url;
+        const parsed = new URL(url);
+        if (
+          parsed.origin === siteUrl ||
+          parsed.origin === baseUrl ||
+          parsed.hostname.endsWith(".vercel.app")
+        ) {
+          return url;
+        }
       } catch {}
-      return `${baseUrl}/dashboard`;
+      return `${siteUrl}/dashboard`;
     },
   },
 });
