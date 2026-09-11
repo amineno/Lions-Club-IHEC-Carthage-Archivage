@@ -16,6 +16,10 @@ export const metadata: Metadata = {
     icon: "/icon.svg",
     apple: "/icon.svg",
   },
+  other: {
+    "msapplication-TileImage": "/icon.svg",
+    "msapplication-TileColor": "#0A2E52",
+  },
 };
 
 export const viewport: Viewport = {

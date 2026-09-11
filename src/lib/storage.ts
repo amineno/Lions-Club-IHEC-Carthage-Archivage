@@ -42,8 +42,26 @@ async function saveFileLocally(
   subfolder: string,
   timestamp: number
 ): Promise<{ fileUrl: string; storagePath: string }> {
-  const uploadsDir = path.join(process.cwd(), "public", "uploads", subfolder);
-  await fs.promises.mkdir(uploadsDir, { recursive: true });
+  const cwd = process.cwd();
+  const uploadsDir = path.join(cwd, "public", "uploads", subfolder);
+  try {
+    await fs.promises.mkdir(uploadsDir, { recursive: true });
+  } catch (e: any) {
+    const code = e?.code || "";
+    const msg = e?.message || "";
+    if (
+      code === "EACCES" ||
+      code === "EROFS" ||
+      code === "ENOENT" ||
+      /readonly|read.only|permission denied/i.test(msg) ||
+      /\/var\/task|^\/[^/]+\/www|^\/tmp\//.test(cwd)
+    ) {
+      throw new Error(
+        "Stockage local indisponible (environnement serverless en lecture seule). Veuillez configurer Supabase (NEXT_PUBLIC_SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY + SUPABASE_BUCKET_NAME) pour activer l'upload de fichiers."
+      );
+    }
+    throw e;
+  }
   const filename = `${timestamp}-${cleanName}`;
   const filePath = path.join(uploadsDir, filename);
   await fs.promises.writeFile(filePath, fileBuffer);
