@@ -7,11 +7,14 @@ export async function GET() {
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
+    const BUREAU_ROLES = ["President", "VicePresident", "Secretaire", "Tresorier", "ResponsableCommunication"];
+
     const [
       documentsCount,
       pvCount,
       eventsCount,
       membresActifsCount,
+      membresBureauCount,
       totalMembresCount,
       partenairesCount,
       eventsEnCoursCount,
@@ -23,6 +26,7 @@ export async function GET() {
       prisma.meetingMinute.count(),
       prisma.event.count(),
       prisma.member.count({ where: { statut: "ACTIF" } }),
+      prisma.member.count({ where: { roleClub: { in: BUREAU_ROLES } } }),
       prisma.member.count(),
       prisma.partner.count(),
       prisma.event.count({ where: { statut: "EN_COURS" } }),
@@ -46,6 +50,7 @@ export async function GET() {
       events: eventsCount,
       evenements: eventsCount,
       membres: membresActifsCount,
+      membresBureau: membresBureauCount,
       totalMembres: totalMembresCount,
       partenaires: partenairesCount,
       docsLastMonth,

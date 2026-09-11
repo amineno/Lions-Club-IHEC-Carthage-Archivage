@@ -12,6 +12,7 @@ interface Counts {
   pv: number;
   evenements: number;
   membres: number;
+  membresBureau?: number;
   partenaires: number;
   docsLastMonth: number;
   totalMembres?: number;
@@ -78,10 +79,10 @@ export default function DashboardClient() {
     },
     {
       href: "/evenements",
-      name: "Actions & Événements",
-      desc: "Dossiers projets et missions humanitaires",
+      name: "Plans d'action des événements et actions",
+      desc: "Plans d'action détaillés par projet et mission",
       countLabel: `${counts?.evenements ?? 0} dossiers`,
-      badge: "Événements",
+      badge: "Actions",
       variant: "gold" as const,
       icon: (
         <svg viewBox="0 0 22 22">
@@ -158,7 +159,11 @@ export default function DashboardClient() {
       <div className="mandate-selector">
         <span className="ms-label">Mandat :</span>
         {mandats.length === 0 ? (
-          <span className="mandate-pill mp-active">2025–2026</span>
+          <>
+            <span className="mandate-pill mp-active">2026–2027</span>
+            <button type="button" className="mandate-pill mp-inactive" style={{ border: "none", cursor: "pointer" }} onClick={() => setSelectedMandat("2025-2026")}>2025–2026</button>
+            <button type="button" className="mandate-pill mp-inactive" style={{ border: "none", cursor: "pointer" }} onClick={() => setSelectedMandat("2024-2025")}>2024–2025</button>
+          </>
         ) : (
           mandats.map((m) => (
             <button
@@ -199,7 +204,7 @@ export default function DashboardClient() {
         />
         <StatCard
           value={counts?.evenements ?? "-"}
-          label="Actions & Événements"
+          label="Plans d'action"
           trend={
             counts && (counts.eventsEnCours ?? 0) > 0
               ? `${counts.eventsEnCours} en cours`
@@ -215,8 +220,8 @@ export default function DashboardClient() {
           }
         />
         <StatCard
-          value={counts?.membres ?? "-"}
-          label="Membres actifs"
+          value={counts?.membresBureau ?? "-"}
+          label="Membres bureaux"
           trend={
             counts?.lastMemberUpdated
               ? `Mis à jour le ${formatDate(counts.lastMemberUpdated)}`

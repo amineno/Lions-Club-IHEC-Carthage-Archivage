@@ -70,7 +70,7 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
         onClick={onClose}
       >
         <NavIcon d="M8 1l1.9 4.1L14 5.7l-3 2.9.7 4.1L8 10.5l-3.7 2.2.7-4.1L2 5.7l4.1-.6z" />
-        Actions &amp; Événements
+        Plans d'action
         {counts.events > 0 && <span className="nav-count">{counts.events}</span>}
       </Link>
 

@@ -105,8 +105,8 @@ export default function EvenementsClient() {
   return (
     <>
       <div className="page-header">
-        <div className="page-title">Actions &amp; Événements</div>
-        <div className="page-subtitle">Dossiers complets par projet et mission humanitaire</div>
+        <div className="page-title">Plans d&apos;action des événements et actions</div>
+        <div className="page-subtitle">Plans d&apos;action détaillés par événement et mission humanitaire</div>
       </div>
 
       <div className="docs-toolbar">

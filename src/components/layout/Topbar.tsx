@@ -26,7 +26,7 @@ export default function Topbar({ onToggleSidebar }: TopbarProps) {
   const navItems = [
     { href: "/dashboard", label: "Tableau de bord", icon: "M2 2h5v5H2zm7 0h5v5H9zm-7 7h5v5H2zm7 0h5v5H9z" },
     { href: "/pv", label: "Procès-verbaux", icon: "M2 4h12v1.5H2zm0 3h12v1.5H2zm0 3h8v1.5H2z", count: 24 },
-    { href: "/evenements", label: "Actions & Événements", icon: "M8 1l1.9 4.1L14 5.7l-3 2.9.7 4.1L8 10.5l-3.7 2.2.7-4.1L2 5.7l4.1-.6z", count: 12 },
+    { href: "/evenements", label: "Plans d'action", icon: "M8 1l1.9 4.1L14 5.7l-3 2.9.7 4.1L8 10.5l-3.7 2.2.7-4.1L2 5.7l4.1-.6z", count: 12 },
     { href: "/documents", label: "Documents officiels", icon: "M3 2h7l3 3v9H3V2z", count: 38 },
     { href: "/membres", label: "Base des membres", icon: "M1 14c0-3 2.5-5 5-5s5 2 5 5 M10 14c0-2 1.5-3 3-3.5", count: 43, circle1: "6 5 3", circle2: "12 6 2" },
     { href: "/partenaires", label: "Partenaires & Sponsors", icon: "M2 10V4l6-3 6 3v6l-6 3z", count: 8 },

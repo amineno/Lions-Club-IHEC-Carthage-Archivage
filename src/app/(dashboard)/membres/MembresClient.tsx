@@ -116,6 +116,7 @@ export default function MembresClient() {
             ))
           ) : (
             <>
+              <option value="mandat-2026">Mandat 2026–2027</option>
               <option value="mandat-2025">Mandat 2025–2026</option>
               <option value="mandat-2024">Mandat 2024–2025</option>
             </>

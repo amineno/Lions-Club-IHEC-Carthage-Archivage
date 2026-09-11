@@ -74,7 +74,7 @@ export function validateFile(file: { name: string; type: string; size: number })
 
 export const SECTION_LABELS: Record<string, string> = {
   PV: "Procès-verbaux",
-  EVENEMENTS: "Actions & Événements",
+  EVENEMENTS: "Plans d'action des événements et actions",
   DOCUMENTS_OFFICIELS: "Documents officiels",
   MEMBRES: "Base des membres",
   PARTENAIRES: "Partenaires & Sponsors",

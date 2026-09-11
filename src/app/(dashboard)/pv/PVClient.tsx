@@ -28,6 +28,7 @@ export default function PVClient() {
   const [filterType, setFilterType] = useState("");
   const [filterMandat, setFilterMandat] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
+  const [pvType, setPvType] = useState("Réunion mensuelle");
 
   // Edit, Preview, and Delete state
   const [previewDoc, setPreviewDoc] = useState<{ nom: string; fileUrl: string; typeFichier: string; tags?: string[] } | null>(null);
@@ -91,6 +92,7 @@ export default function PVClient() {
       <div className="docs-toolbar">
         <select className="filter-select" value={filterMandat} onChange={(e) => setFilterMandat(e.target.value)}>
           <option value="">Tous les mandats</option>
+          <option value="2026-2027">2026–2027</option>
           <option value="2025-2026">2025–2026</option>
           <option value="2024-2025">2024–2025</option>
         </select>
@@ -209,14 +211,26 @@ export default function PVClient() {
       {/* MODAL AJOUT PV */}
       <DocumentUploadModal
         open={modalOpen}
-        onClose={() => setModalOpen(false)}
+        onClose={() => {
+          setModalOpen(false);
+          setPvType("Réunion mensuelle");
+        }}
         defaultSection={"PV" as DocumentSection}
         title="Ajouter un procès-verbal"
         subtitle="Téléversez le PV complété avec ses métadonnées"
         onSuccess={onUploaded}
         onSubmit={async (fd) => {
+          fd.append("type", pvType);
+
           const resDoc = await fetch("/api/documents", { method: "POST", body: fd });
-          if (!resDoc.ok) throw new Error("Erreur upload fichier");
+          if (!resDoc.ok) {
+            let msg = "Erreur upload fichier";
+            try {
+              const err = await resDoc.json();
+              if (err?.error) msg = err.error;
+            } catch {}
+            throw new Error(msg);
+          }
           const { document } = await resDoc.json();
 
           const titre = fd.get("nom") as string;
@@ -236,7 +250,15 @@ export default function PVClient() {
               documentId: document.id,
             }),
           });
-          if (!resPv.ok) throw new Error("Erreur création PV");
+          if (!resPv.ok) {
+            let msg = "Erreur création PV";
+            try {
+              const err = await resPv.json();
+              if (err?.error && typeof err.error === "string") msg = err.error;
+              if (err?.error?.fieldErrors) msg = "Champs invalides";
+            } catch {}
+            throw new Error(msg);
+          }
           return resPv.json();
         }}
         extraFields={
@@ -246,8 +268,8 @@ export default function PVClient() {
               className="form-input"
               style={{ cursor: "pointer" }}
               id="pv-type-field"
-              name="type"
-              onChange={(e) => (e.currentTarget.form as any)?.append("type", e.currentTarget.value)}
+              value={pvType}
+              onChange={(e) => setPvType(e.target.value)}
             >
               <option value="Réunion mensuelle">Réunion mensuelle</option>
               <option value="Assemblée générale">Assemblée générale</option>

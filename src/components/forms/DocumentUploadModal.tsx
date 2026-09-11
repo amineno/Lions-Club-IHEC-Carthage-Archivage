@@ -22,7 +22,7 @@ interface DocumentUploadModalProps {
 
 const SECTION_OPTIONS: { value: DocumentSection; label: string }[] = [
   { value: "PV", label: "Procès-verbaux" },
-  { value: "EVENEMENTS", label: "Actions & Événements" },
+  { value: "EVENEMENTS", label: "Plans d'action" },
   { value: "DOCUMENTS_OFFICIELS", label: "Documents officiels" },
   { value: "MEMBRES", label: "Base des membres" },
   { value: "PARTENAIRES", label: "Partenaires" },

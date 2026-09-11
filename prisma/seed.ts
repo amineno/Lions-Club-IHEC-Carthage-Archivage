@@ -12,13 +12,24 @@ async function main() {
 
   // ===== MANDATS =====
   const mandatActif = await prisma.mandat.upsert({
+    where: { libelle: "2026–2027" },
+    update: { actif: true },
+    create: {
+      libelle: "2026–2027",
+      dateDebut: new Date("2026-07-01"),
+      dateFin: new Date("2027-06-30"),
+      actif: true,
+    },
+  });
+
+  const mandat2025 = await prisma.mandat.upsert({
     where: { libelle: "2025–2026" },
-    update: {},
+    update: { actif: false },
     create: {
       libelle: "2025–2026",
       dateDebut: new Date("2025-07-01"),
       dateFin: new Date("2026-06-30"),
-      actif: true,
+      actif: false,
     },
   });
 
