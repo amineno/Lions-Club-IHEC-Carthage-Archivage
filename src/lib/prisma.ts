@@ -4,10 +4,6 @@ import path from "path";
 
 function resolveDatabaseUrl(): string {
   const envUrl = process.env.DATABASE_URL;
-  // If user configured a cloud database (e.g. Supabase Postgres)
-  if (envUrl && !envUrl.startsWith("file:")) {
-    return envUrl;
-  }
 
   // On Vercel / AWS Lambda serverless runtime with SQLite
   if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
@@ -46,7 +42,25 @@ function resolveDatabaseUrl(): string {
     return "file:/tmp/dev.db";
   }
 
-  return envUrl || "file:./dev.db";
+  if (
+    !envUrl ||
+    envUrl.includes("user:password@host") ||
+    envUrl.includes("votre-projet") ||
+    (!envUrl.startsWith("file:") && !envUrl.startsWith("postgres"))
+  ) {
+    return "file:./dev.db";
+  }
+
+  // Current schema.prisma uses SQLite provider. If a PostgreSQL URL is given without altering schema.prisma,
+  // Prisma will crash with 'the URL must start with the protocol file:'. Fallback cleanly to local SQLite.
+  if (!envUrl.startsWith("file:")) {
+    console.warn(
+      `[Prisma] DATABASE_URL est défini sur PostgreSQL (${envUrl}), mais schema.prisma utilise SQLite. Utilisation automatique de SQLite local ("file:./dev.db").`
+    );
+    return "file:./dev.db";
+  }
+
+  return envUrl;
 }
 
 const dbUrl = resolveDatabaseUrl();
