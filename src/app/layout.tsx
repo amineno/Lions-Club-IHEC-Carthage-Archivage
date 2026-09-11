@@ -13,11 +13,19 @@ export const metadata: Metadata = {
     title: "Lions Archives",
   },
   icons: {
-    icon: "/icon.svg",
-    apple: "/icon.svg",
+    icon: [
+      { url: "/icon.png", type: "image/png" },
+      { url: "/icon.svg", type: "image/svg+xml" },
+    ],
+    apple: [
+      { url: "/icon.png", type: "image/png" },
+    ],
+    shortcut: [
+      { url: "/icon.png", type: "image/png" },
+    ],
   },
   other: {
-    "msapplication-TileImage": "/icon.svg",
+    "msapplication-TileImage": "/icon.png",
     "msapplication-TileColor": "#0A2E52",
   },
 };
