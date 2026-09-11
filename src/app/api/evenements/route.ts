@@ -46,6 +46,9 @@ export async function POST(req: Request) {
     if (!data.mandatId || data.mandatId.trim() === "") delete data.mandatId;
     if (!data.description || data.description.trim() === "") delete data.description;
     if (!data.type || data.type.trim() === "") delete data.type;
+    if (!data.lieu || data.lieu.trim() === "") delete data.lieu;
+    if (!data.dateFin) delete data.dateFin;
+    if (data.budgetPrevu == null || isNaN(data.budgetPrevu)) delete data.budgetPrevu;
 
     const event = await prisma.event.create({
       data,

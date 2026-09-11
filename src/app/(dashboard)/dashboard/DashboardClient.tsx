@@ -41,7 +41,7 @@ export default function DashboardClient() {
   const [mandats, setMandats] = useState<Array<{ id: string; libelle: string; actif: boolean }>>([]);
   const [selectedMandat, setSelectedMandat] = useState<string>("");
 
-  useEffect(() => {
+  const loadAll = () => {
     fetch("/api/dashboard/counts")
       .then((r) => r.json())
       .then((d) => setCounts(d))
@@ -61,6 +61,22 @@ export default function DashboardClient() {
         if (active) setSelectedMandat(active.id);
       })
       .catch(() => {});
+  };
+
+  useEffect(() => {
+    loadAll();
+    const interval = setInterval(loadAll, 15000);
+    const onFocus = () => loadAll();
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") loadAll();
+    };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, []);
 
   const folders = [

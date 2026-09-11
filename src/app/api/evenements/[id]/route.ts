@@ -33,8 +33,13 @@ export async function PATCH(
     const body = await req.json();
     const data: any = { ...body };
     if (body.date) data.date = new Date(body.date);
+    if (body.dateFin) data.dateFin = new Date(body.dateFin);
+    if (data.dateFin === null || data.dateFin === undefined || data.dateFin === "") data.dateFin = null;
     if (data.responsableId === "" || data.responsableId === undefined) data.responsableId = null;
     if (data.mandatId === "" || data.mandatId === undefined) data.mandatId = null;
+    if (data.lieu === "" || data.lieu === undefined) data.lieu = null;
+    if (data.budgetPrevu === "" || data.budgetPrevu === undefined || data.budgetPrevu === null) data.budgetPrevu = null;
+    else if (!isNaN(data.budgetPrevu)) data.budgetPrevu = parseFloat(data.budgetPrevu);
 
     const event = await prisma.event.update({
       where: { id: params.id },

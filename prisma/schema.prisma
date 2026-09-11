@@ -79,6 +79,9 @@ model Event {
   nom             String
   description     String?
   date            DateTime
+  dateFin         DateTime?
+  lieu            String?
+  budgetPrevu     Float?
   statut          String         @default("PLANIFIE")
   type            String?
   createdAt       DateTime       @default(now())

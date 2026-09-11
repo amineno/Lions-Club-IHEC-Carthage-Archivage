@@ -18,7 +18,7 @@ const LionsEmblem = ({ size = 44 }: { size?: number }) => (
     aria-label="Lions Club IHEC Carthage"
   >
     <Image
-      src="/lions-logo.jpeg"
+      src="/lionsclub.jpeg"
       alt="Lions Club IHEC Carthage"
       width={size}
       height={size}

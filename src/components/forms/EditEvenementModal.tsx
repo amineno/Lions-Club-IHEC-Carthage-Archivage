@@ -9,6 +9,9 @@ interface EventData {
   nom: string;
   description?: string | null;
   date: string;
+  dateFin?: string | null;
+  lieu?: string | null;
+  budgetPrevu?: number | null;
   statut: string;
   type?: string | null;
   responsable?: { id: string; nom: string } | null;
@@ -31,6 +34,9 @@ export default function EditEvenementModal({
   const [nom, setNom] = useState("");
   const [description, setDescription] = useState("");
   const [date, setDate] = useState("");
+  const [dateFin, setDateFin] = useState("");
+  const [lieu, setLieu] = useState("");
+  const [budgetPrevu, setBudgetPrevu] = useState("");
   const [statut, setStatut] = useState("PLANIFIE");
   const [type, setType] = useState("");
   const [loading, setLoading] = useState(false);
@@ -50,6 +56,18 @@ export default function EditEvenementModal({
       } else {
         setDate("");
       }
+      if (event.dateFin) {
+        try {
+          const d = new Date(event.dateFin);
+          setDateFin(d.toISOString().split("T")[0]);
+        } catch {
+          setDateFin("");
+        }
+      } else {
+        setDateFin("");
+      }
+      setLieu(event.lieu || "");
+      setBudgetPrevu(event.budgetPrevu != null ? String(event.budgetPrevu) : "");
       setStatut(event.statut || "PLANIFIE");
       setType(event.type || "");
       setError("");
@@ -69,16 +87,24 @@ export default function EditEvenementModal({
     setError("");
 
     try {
+      const payload: any = {
+        nom: nom.trim(),
+        description: description.trim() || null,
+        date: date ? new Date(date).toISOString() : undefined,
+        dateFin: dateFin ? new Date(dateFin).toISOString() : null,
+        lieu: lieu.trim() || null,
+        budgetPrevu: budgetPrevu !== "" ? parseFloat(budgetPrevu) : null,
+        statut,
+        type: type.trim() || null,
+      };
+      if (!payload.dateFin) delete payload.dateFin;
+      if (!payload.lieu) delete payload.lieu;
+      if (payload.budgetPrevu === null) delete payload.budgetPrevu;
+
       const res = await fetch(`/api/evenements/${event.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          nom: nom.trim(),
-          description: description.trim() || null,
-          date: date ? new Date(date).toISOString() : undefined,
-          statut,
-          type: type.trim() || null,
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
@@ -152,7 +178,7 @@ export default function EditEvenementModal({
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginBottom: "16px" }}>
           <div className="form-group">
             <label className="form-label" style={{ fontWeight: 600, fontSize: "13px" }}>
-              Date
+              Date de début
             </label>
             <input
               type="date"
@@ -163,6 +189,21 @@ export default function EditEvenementModal({
             />
           </div>
 
+          <div className="form-group">
+            <label className="form-label" style={{ fontWeight: 600, fontSize: "13px" }}>
+              Date de fin
+            </label>
+            <input
+              type="date"
+              className="form-input"
+              value={dateFin}
+              onChange={(e) => setDateFin(e.target.value)}
+              disabled={loading}
+            />
+          </div>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginBottom: "16px" }}>
           <div className="form-group">
             <label className="form-label" style={{ fontWeight: 600, fontSize: "13px" }}>
               Statut
@@ -179,6 +220,36 @@ export default function EditEvenementModal({
               <option value="TERMINE">Terminé</option>
             </select>
           </div>
+
+          <div className="form-group">
+            <label className="form-label" style={{ fontWeight: 600, fontSize: "13px" }}>
+              Budget prévu (DT)
+            </label>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              className="form-input"
+              placeholder="Ex : 500"
+              value={budgetPrevu}
+              onChange={(e) => setBudgetPrevu(e.target.value)}
+              disabled={loading}
+            />
+          </div>
+        </div>
+
+        <div className="form-group" style={{ marginBottom: "16px" }}>
+          <label className="form-label" style={{ fontWeight: 600, fontSize: "13px" }}>
+            Lieu
+          </label>
+          <input
+            type="text"
+            className="form-input"
+            placeholder="Ex : Tunis, Salle A201..."
+            value={lieu}
+            onChange={(e) => setLieu(e.target.value)}
+            disabled={loading}
+          />
         </div>
 
         <div className="form-group" style={{ marginBottom: "16px" }}>

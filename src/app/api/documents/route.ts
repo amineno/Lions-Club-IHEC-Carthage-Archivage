@@ -30,17 +30,33 @@ export async function GET(req: Request) {
     if (tag) where.tags = { contains: tag };
     if (search) where.nom = { contains: search };
 
-    const docs = await prisma.document.findMany({
-      where,
-      orderBy: { createdAt: "desc" },
-      take: 200,
-    });
+    let docs: any[] = [];
+    try {
+      docs = await prisma.document.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        take: 200,
+      });
+    } catch (dbErr: any) {
+      console.error("GET documents DB error:", dbErr?.message || dbErr);
+      if (
+        dbErr?.code === "P2021" ||
+        /no such table/i.test(dbErr?.message || "") ||
+        /SQLITE_ERROR/i.test(dbErr?.message || "")
+      ) {
+        return NextResponse.json({ documents: [], _warn: "Base de données non initialisée" });
+      }
+      throw dbErr;
+    }
     return NextResponse.json({
       documents: docs.map((d) => ({ ...d, tags: parseTags(d.tags) })),
     });
-  } catch (e) {
-    console.error("GET documents error:", e);
-    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
+  } catch (e: any) {
+    console.error("GET documents fatal error:", e?.message || e, e?.stack || "");
+    return NextResponse.json(
+      { error: process.env.NODE_ENV === "development" ? e?.message || "Erreur serveur" : "Erreur serveur" },
+      { status: 500 }
+    );
   }
 }
 

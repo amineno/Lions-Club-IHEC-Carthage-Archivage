@@ -15,6 +15,9 @@ interface EventRow {
   nom: string;
   description?: string | null;
   date: string;
+  dateFin?: string | null;
+  lieu?: string | null;
+  budgetPrevu?: number | null;
   statut: "EN_COURS" | "TERMINE" | "PLANIFIE";
   type?: string | null;
   responsable?: { id: string; nom: string } | null;
@@ -32,6 +35,9 @@ export default function EvenementsClient() {
     nom: "",
     description: "",
     date: "",
+    dateFin: "",
+    lieu: "",
+    budgetPrevu: "",
     type: "",
     statut: "PLANIFIE",
     responsableId: "",
@@ -62,12 +68,29 @@ export default function EvenementsClient() {
     load();
   }, [statut, typeF]);
 
+  useEffect(() => {
+    const onFocus = () => load();
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") load();
+    };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, []);
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     const payload: any = { ...form };
     if (!payload.responsableId || !payload.responsableId.trim()) delete payload.responsableId;
     if (!payload.description || !payload.description.trim()) delete payload.description;
     if (!payload.type || !payload.type.trim()) delete payload.type;
+    if (!payload.lieu || !payload.lieu.trim()) delete payload.lieu;
+    if (!payload.dateFin) delete payload.dateFin;
+    if (!payload.budgetPrevu || payload.budgetPrevu === "") delete payload.budgetPrevu;
+    else payload.budgetPrevu = parseFloat(payload.budgetPrevu);
     payload.date = payload.date || new Date().toISOString();
 
     const res = await fetch("/api/evenements", {
@@ -78,7 +101,7 @@ export default function EvenementsClient() {
     if (res.ok) {
       showToast("Événement créé avec succès !", "success");
       setModal(false);
-      setForm({ nom: "", description: "", date: "", type: "", statut: "PLANIFIE", responsableId: "" });
+      setForm({ nom: "", description: "", date: "", dateFin: "", lieu: "", budgetPrevu: "", type: "", statut: "PLANIFIE", responsableId: "" });
       load();
     } else {
       const err = await res.json().catch(() => ({}));
@@ -237,9 +260,15 @@ export default function EvenementsClient() {
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <div className="form-group">
-              <label className="form-label">Date</label>
+              <label className="form-label">Date de début</label>
               <input className="form-input" type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
             </div>
+            <div className="form-group">
+              <label className="form-label">Date de fin</label>
+              <input className="form-input" type="date" value={form.dateFin} onChange={(e) => setForm({ ...form, dateFin: e.target.value })} />
+            </div>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <div className="form-group">
               <label className="form-label">Statut</label>
               <select className="form-input" style={{ cursor: "pointer" }} value={form.statut} onChange={(e) => setForm({ ...form, statut: e.target.value as any })}>
@@ -248,6 +277,14 @@ export default function EvenementsClient() {
                 <option value="TERMINE">Terminé</option>
               </select>
             </div>
+            <div className="form-group">
+              <label className="form-label">Budget prévu (DT)</label>
+              <input className="form-input" type="number" min="0" step="0.01" placeholder="Ex : 500" value={form.budgetPrevu} onChange={(e) => setForm({ ...form, budgetPrevu: e.target.value })} />
+            </div>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Lieu</label>
+            <input className="form-input" placeholder="Tunis, Salle A201..." value={form.lieu} onChange={(e) => setForm({ ...form, lieu: e.target.value })} />
           </div>
           <div className="form-group">
             <label className="form-label">Type d'action</label>

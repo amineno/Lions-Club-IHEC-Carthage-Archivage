@@ -80,13 +80,13 @@ export function exportEventsToCSV(events: any[]): void {
   const rows: (string | number | null | undefined)[][] = [
     headers,
     ...events.map((e) => [
-      e.titre,
-      e.typeAction || "Humanitaire",
+      e.nom || e.titre || "",
+      e.type || e.typeAction || "",
       e.statut === "TERMINE" ? "Terminé" : e.statut === "EN_COURS" ? "En cours" : "Planifié",
-      e.dateDebut ? new Date(e.dateDebut).toLocaleDateString("fr-FR") : "",
-      e.dateFin ? new Date(e.dateFin).toLocaleDateString("fr-FR") : "",
+      (e.date || e.dateDebut) ? new Date(e.date || e.dateDebut).toLocaleDateString("fr-FR") : "",
+      (e.dateFin || e.dateFin) ? new Date(e.dateFin || e.dateFin).toLocaleDateString("fr-FR") : "",
       e.lieu || "",
-      e.budget != null ? e.budget : "",
+      e.budgetPrevu != null ? e.budgetPrevu : e.budget != null ? e.budget : "",
       e.responsable?.nom || "",
     ]),
   ];

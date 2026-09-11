@@ -23,17 +23,35 @@ export const ALLOWED_MIME_TYPES: Record<string, string> = {
 const isRealSupabase =
   Boolean(supabaseUrl) &&
   !supabaseUrl?.includes("votre-projet") &&
-  !supabaseUrl?.includes("example.com");
+  !supabaseUrl?.includes("example.com") &&
+  Boolean(supabaseServiceKey) &&
+  !supabaseServiceKey?.includes("votre-cle-service") &&
+  !supabaseServiceKey?.includes("your-key");
 
 export const supabase = isRealSupabase
   ? createClient(supabaseUrl!, supabaseServiceKey || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "")
   : null;
+
+export function isStorageConfigured(): boolean {
+  return !!isRealSupabase;
+}
 
 function sanitizeFilename(name: string): string {
   return name
     .replace(/[^a-zA-Z0-9._-]/g, "_")
     .replace(/_+/g, "_")
     .slice(0, 200);
+}
+
+function isReadonlyEnvironment(): boolean {
+  const cwd = process.cwd();
+  const env = process.env.NODE_ENV || "";
+  const vercel = process.env.VERCEL || process.env.VERCEL_ENV || "";
+  if (vercel) return true;
+  if (env === "production") {
+    if (/\/var\/task|^\/tmp|srv|serverless|lambda/i.test(cwd)) return true;
+  }
+  return false;
 }
 
 async function saveFileLocally(
@@ -44,6 +62,13 @@ async function saveFileLocally(
 ): Promise<{ fileUrl: string; storagePath: string }> {
   const cwd = process.cwd();
   const uploadsDir = path.join(cwd, "public", "uploads", subfolder);
+
+  if (isReadonlyEnvironment()) {
+    throw new Error(
+      "Stockage local indisponible (environnement serverless en lecture seule). Veuillez configurer Supabase Storage : ajoutez NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY et SUPABASE_BUCKET_NAME aux variables d'environnement, puis créez un bucket public 'lions-club-archives' dans votre projet Supabase."
+    );
+  }
+
   try {
     await fs.promises.mkdir(uploadsDir, { recursive: true });
   } catch (e: any) {
@@ -52,12 +77,10 @@ async function saveFileLocally(
     if (
       code === "EACCES" ||
       code === "EROFS" ||
-      code === "ENOENT" ||
-      /readonly|read.only|permission denied/i.test(msg) ||
-      /\/var\/task|^\/[^/]+\/www|^\/tmp\//.test(cwd)
+      /readonly|read.only|permission denied/i.test(msg)
     ) {
       throw new Error(
-        "Stockage local indisponible (environnement serverless en lecture seule). Veuillez configurer Supabase (NEXT_PUBLIC_SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY + SUPABASE_BUCKET_NAME) pour activer l'upload de fichiers."
+        "Stockage local indisponible (lecture seule). Veuillez configurer Supabase Storage pour activer l'upload de fichiers : NEXT_PUBLIC_SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY + SUPABASE_BUCKET_NAME."
       );
     }
     throw e;

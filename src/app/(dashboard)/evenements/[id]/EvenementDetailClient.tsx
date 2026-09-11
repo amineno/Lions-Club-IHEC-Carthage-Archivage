@@ -16,6 +16,9 @@ interface EventDetail {
   nom: string;
   description?: string | null;
   date: string;
+  dateFin?: string | null;
+  lieu?: string | null;
+  budgetPrevu?: number | null;
   statut: "EN_COURS" | "TERMINE" | "PLANIFIE";
   type?: string | null;
   createdAt: string;
@@ -157,7 +160,11 @@ export default function EvenementDetailClient({ id }: { id: string }) {
           </div>
           <div className="page-title">{event.nom}</div>
           <div className="page-subtitle">
-            Date de l&apos;action : {formatDate(event.date)}
+            {event.dateFin
+              ? `Période : du ${formatDate(event.date)} au ${formatDate(event.dateFin)}`
+              : `Date de l&apos;action : ${formatDate(event.date)}`}
+            {event.lieu && ` • Lieu : ${event.lieu}`}
+            {event.budgetPrevu != null && ` • Budget prévu : ${event.budgetPrevu.toLocaleString("fr-FR")} DT`}
           </div>
         </div>
 
@@ -413,6 +420,20 @@ export default function EvenementDetailClient({ id }: { id: string }) {
                 <span style={{ color: "var(--text-muted)" }}>Mandat :</span>
                 <span style={{ fontWeight: 500, color: "var(--navy)" }}>{event.mandat?.libelle || "2025–2026"}</span>
               </div>
+              {event.lieu && (
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ color: "var(--text-muted)" }}>Lieu :</span>
+                  <span style={{ fontWeight: 500, color: "var(--navy)" }}>{event.lieu}</span>
+                </div>
+              )}
+              {event.budgetPrevu != null && (
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ color: "var(--text-muted)" }}>Budget prévu :</span>
+                  <span style={{ fontWeight: 600, color: "var(--gold-dark, #854F0B)" }}>
+                    {event.budgetPrevu.toLocaleString("fr-FR")} DT
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         </div>
