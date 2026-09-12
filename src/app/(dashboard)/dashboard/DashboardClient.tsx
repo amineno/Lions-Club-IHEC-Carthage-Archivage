@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import StatCard from "@/components/ui/StatCard";
 import FolderCard from "@/components/ui/FolderCard";
 import Link from "next/link";
+import ConfirmModal from "@/components/ui/ConfirmModal";
 import { formatDate, SECTION_LABELS, DOC_TYPE_CLASS, parseTags } from "@/lib/utils";
 import { useUser } from "@/hooks/useUser";
 
@@ -81,8 +82,19 @@ export default function DashboardClient() {
   const { isAdmin } = useUser();
   const [counts, setCounts] = useState<Counts | null>(null);
   const [recent, setRecent] = useState<RecentDoc[]>([]);
+  const [staticDocs, setStaticDocs] = useState(STATIC_RECENT_DOCS);
+  const [deleteTarget, setDeleteTarget] = useState<(typeof STATIC_RECENT_DOCS)[0] | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [mandats, setMandats] = useState<Array<{ id: string; libelle: string; actif: boolean }>>([]);
   const [selectedMandat, setSelectedMandat] = useState<string>("");
+
+  const handleDelete = () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    setStaticDocs((prev) => prev.filter((d) => d.id !== deleteTarget.id));
+    setDeleteTarget(null);
+    setIsDeleting(false);
+  };
 
   const loadAll = () => {
     fetch("/api/dashboard/counts")
@@ -315,44 +327,81 @@ export default function DashboardClient() {
             Voir tout →
           </Link>
         </div>
-        {STATIC_RECENT_DOCS.map((doc) => (
-          <Link
-            key={doc.id}
-            href={doc.href}
-            className="doc-row"
-          >
-            <div className={`doc-type-badge ${DOC_TYPE_CLASS[doc.typeFichier] || "dtb-doc"}`}>
-              {doc.typeFichier}
-            </div>
-            <div className="doc-info">
-              <div className="doc-name">{doc.nom}</div>
-              <div className="doc-meta">
-                <span className="doc-section-label">{doc.section}</span>
-                <span className={`doc-tag ${doc.tagClass}`}>
-                  {doc.tag}
-                </span>
+        {staticDocs.length === 0 ? (
+          <div style={{ padding: 24, textAlign: "center", color: "var(--text-light)", fontSize: 13 }}>
+            Aucun document récent
+          </div>
+        ) : (
+          staticDocs.map((doc) => (
+            <Link
+              key={doc.id}
+              href={doc.href}
+              className="doc-row"
+            >
+              <div className={`doc-type-badge ${DOC_TYPE_CLASS[doc.typeFichier] || "dtb-doc"}`}>
+                {doc.typeFichier}
               </div>
-            </div>
-            <div className="doc-date">{doc.date}</div>
-            <div className="doc-actions">
-              <button
-                type="button"
-                className="doc-action-btn"
-                title="Aperçu"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  window.location.href = doc.href;
-                }}
-              >
-                <svg viewBox="0 0 14 14">
-                  <path d="M7 2C4 2 1.5 4.5 1.5 7S4 12 7 12s5.5-2.5 5.5-5S10 2 7 2zm0 8a3 3 0 110-6 3 3 0 010 6z" />
-                </svg>
-              </button>
-            </div>
-          </Link>
-        ))}
+              <div className="doc-info">
+                <div className="doc-name">{doc.nom}</div>
+                <div className="doc-meta">
+                  <span className="doc-section-label">{doc.section}</span>
+                  <span className={`doc-tag ${doc.tagClass}`}>
+                    {doc.tag}
+                  </span>
+                </div>
+              </div>
+              <div className="doc-date">{doc.date}</div>
+              <div className="doc-actions">
+                <button
+                  type="button"
+                  className="doc-action-btn"
+                  title="Aperçu"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    window.location.href = doc.href;
+                  }}
+                >
+                  <svg viewBox="0 0 14 14">
+                    <path d="M7 2C4 2 1.5 4.5 1.5 7S4 12 7 12s5.5-2.5 5.5-5S10 2 7 2zm0 8a3 3 0 110-6 3 3 0 010 6z" />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  className="doc-action-btn del"
+                  title="Supprimer"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setDeleteTarget(doc);
+                  }}
+                >
+                  <svg viewBox="0 0 14 14">
+                    <path d="M2 4h10l-1 8H3L2 4zm3-2h4v2H5V2zm1.5 4v4m2-4v4" />
+                  </svg>
+                </button>
+              </div>
+            </Link>
+          ))
+        )}
       </div>
+
+      <ConfirmModal
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDelete}
+        title="Supprimer le document"
+        message={
+          <>
+            Êtes-vous sûr de vouloir supprimer le document{" "}
+            <strong style={{ color: "var(--navy)" }}>{deleteTarget?.nom}</strong> des derniers ajouts ?
+          </>
+        }
+        confirmLabel="Supprimer"
+        cancelLabel="Annuler"
+        variant="danger"
+        loading={isDeleting}
+      />
     </>
   );
 }
