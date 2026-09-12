@@ -34,6 +34,49 @@ interface RecentDoc {
   createdAt: string;
 }
 
+const STATIC_RECENT_DOCS = [
+  {
+    id: "static-1",
+    nom: "PV Réunion mensuelle — Avril 2025",
+    section: "Procès-verbaux",
+    tag: "réunion",
+    tagClass: "tag-reunion",
+    typeFichier: "PDF",
+    date: "18 avr. 2025",
+    href: "/pv",
+  },
+  {
+    id: "static-2",
+    nom: "Dossier Campagne Don du Sang — Printemps 2025",
+    section: "Actions & Événements",
+    tag: "social",
+    tagClass: "tag-social",
+    typeFichier: "DOC",
+    date: "12 avr. 2025",
+    href: "/evenements",
+  },
+  {
+    id: "static-3",
+    nom: "Convention partenariat — Startup Express",
+    section: "Partenaires",
+    tag: "sponsoring",
+    tagClass: "tag-sponsor",
+    typeFichier: "PDF",
+    date: "05 avr. 2025",
+    href: "/partenaires",
+  },
+  {
+    id: "static-4",
+    nom: "Registre membres 2025–2026 — mise à jour",
+    section: "Base membres",
+    tag: "RH",
+    tagClass: "tag-rh",
+    typeFichier: "XLS",
+    date: "01 avr. 2025",
+    href: "/membres",
+  },
+];
+
 export default function DashboardClient() {
   const { isAdmin } = useUser();
   const [counts, setCounts] = useState<Counts | null>(null);
@@ -272,51 +315,43 @@ export default function DashboardClient() {
             Voir tout →
           </Link>
         </div>
-        {recent.length === 0 ? (
-          <div style={{ padding: 24, textAlign: "center", color: "var(--text-light)", fontSize: 13 }}>
-            Aucun document pour le moment
-          </div>
-        ) : (
-          recent.map((doc) => (
-            <a
-              key={doc.id}
-              href={doc.fileUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="doc-row"
-            >
-              <div className={`doc-type-badge ${DOC_TYPE_CLASS[doc.typeFichier] || "dtb-doc"}`}>
-                {doc.typeFichier}
+        {STATIC_RECENT_DOCS.map((doc) => (
+          <Link
+            key={doc.id}
+            href={doc.href}
+            className="doc-row"
+          >
+            <div className={`doc-type-badge ${DOC_TYPE_CLASS[doc.typeFichier] || "dtb-doc"}`}>
+              {doc.typeFichier}
+            </div>
+            <div className="doc-info">
+              <div className="doc-name">{doc.nom}</div>
+              <div className="doc-meta">
+                <span className="doc-section-label">{doc.section}</span>
+                <span className={`doc-tag ${doc.tagClass}`}>
+                  {doc.tag}
+                </span>
               </div>
-              <div className="doc-info">
-                <div className="doc-name">{doc.nom}</div>
-                <div className="doc-meta">
-                  <span className="doc-section-label">{doc.sectionLabel || SECTION_LABELS[doc.section] || "Document"}</span>
-                  {parseTags(doc.tags)[0] && (
-                    <span className={`doc-tag tag-${["reunion", "social", "sponsor", "rh", "officiel"].includes(parseTags(doc.tags)[0]) ? parseTags(doc.tags)[0] : "officiel"}`}>
-                      {parseTags(doc.tags)[0]}
-                    </span>
-                  )}
-                </div>
-              </div>
-              <div className="doc-date">{formatDate(doc.createdAt)}</div>
-              <div className="doc-actions">
-                <button
-                  className="doc-action-btn"
-                  title="Aperçu"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    window.open(doc.fileUrl, "_blank");
-                  }}
-                >
-                  <svg viewBox="0 0 14 14">
-                    <path d="M7 2C4 2 1.5 4.5 1.5 7S4 12 7 12s5.5-2.5 5.5-5S10 2 7 2zm0 8a3 3 0 110-6 3 3 0 010 6z" />
-                  </svg>
-                </button>
-              </div>
-            </a>
-          ))
-        )}
+            </div>
+            <div className="doc-date">{doc.date}</div>
+            <div className="doc-actions">
+              <button
+                type="button"
+                className="doc-action-btn"
+                title="Aperçu"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  window.location.href = doc.href;
+                }}
+              >
+                <svg viewBox="0 0 14 14">
+                  <path d="M7 2C4 2 1.5 4.5 1.5 7S4 12 7 12s5.5-2.5 5.5-5S10 2 7 2zm0 8a3 3 0 110-6 3 3 0 010 6z" />
+                </svg>
+              </button>
+            </div>
+          </Link>
+        ))}
       </div>
     </>
   );

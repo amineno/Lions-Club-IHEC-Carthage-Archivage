@@ -2,8 +2,12 @@ import { createClient } from "@supabase/supabase-js";
 import fs from "fs";
 import path from "path";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabaseUrl =
+  process.env.NEXT_PUBLIC_SUPABASE_URL || "https://qtqrtlrdfhhzomjqjztx.supabase.co";
+const supabaseServiceKey =
+  process.env.SUPABASE_SERVICE_ROLE_KEY ||
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF0cXJ0bHJkZmhoem9tanFqenR4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4OTE2MDg3NCwiZXhwIjoyMTA0NzM2ODc0fQ.tHmTrAwodoOXuUwYh7Fj836UJTKfjaWj8xmH0eK9yn4";
 const bucketName = process.env.SUPABASE_BUCKET_NAME || "lions-club-archives";
 
 export const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 Mo
@@ -22,14 +26,14 @@ export const ALLOWED_MIME_TYPES: Record<string, string> = {
 
 const isRealSupabase =
   Boolean(supabaseUrl) &&
-  !supabaseUrl?.includes("votre-projet") &&
-  !supabaseUrl?.includes("example.com") &&
+  !supabaseUrl.includes("votre-projet") &&
+  !supabaseUrl.includes("example.com") &&
   Boolean(supabaseServiceKey) &&
-  !supabaseServiceKey?.includes("votre-cle-service") &&
-  !supabaseServiceKey?.includes("your-key");
+  !supabaseServiceKey.includes("votre-cle-service") &&
+  !supabaseServiceKey.includes("your-key");
 
 export const supabase = isRealSupabase
-  ? createClient(supabaseUrl!, supabaseServiceKey || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "")
+  ? createClient(supabaseUrl, supabaseServiceKey)
   : null;
 
 export function isStorageConfigured(): boolean {
@@ -118,7 +122,10 @@ export async function uploadFile(
       });
 
     if (error || !data) {
-      console.warn("Supabase upload error, falling back to local disk storage:", error?.message);
+      console.warn("Supabase upload error:", error?.message);
+      if (isReadonlyEnvironment()) {
+        throw new Error(`Erreur Supabase Storage : ${error?.message || "Upload impossible"}`);
+      }
       return await saveFileLocally(fileBuffer, cleanName, subfolder, timestamp);
     }
 
@@ -128,7 +135,10 @@ export async function uploadFile(
 
     return { fileUrl: urlData.publicUrl, storagePath: data.path };
   } catch (err: any) {
-    console.warn("Supabase exception, falling back to local disk storage:", err?.message);
+    console.error("Supabase exception during upload:", err?.message || err);
+    if (isReadonlyEnvironment()) {
+      throw new Error(err?.message || "Erreur de stockage Supabase");
+    }
     return await saveFileLocally(fileBuffer, cleanName, subfolder, timestamp);
   }
 }
