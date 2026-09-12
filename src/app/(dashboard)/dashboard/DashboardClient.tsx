@@ -91,10 +91,25 @@ export default function DashboardClient() {
   const handleDelete = () => {
     if (!deleteTarget) return;
     setIsDeleting(true);
-    setStaticDocs((prev) => prev.filter((d) => d.id !== deleteTarget.id));
+    setStaticDocs((prev) => {
+      const updated = prev.filter((d) => d.id !== deleteTarget.id);
+      try {
+        localStorage.setItem("lions_static_recent_docs", JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
     setDeleteTarget(null);
     setIsDeleting(false);
   };
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("lions_static_recent_docs");
+      if (saved !== null) {
+        setStaticDocs(JSON.parse(saved));
+      }
+    } catch (e) {}
+  }, []);
 
   const loadAll = () => {
     fetch("/api/dashboard/counts")
