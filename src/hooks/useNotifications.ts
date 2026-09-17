@@ -16,6 +16,13 @@ export function useNotifications() {
   const [loading, setLoading] = useState(false);
 
   const fetchNotifs = useCallback(async () => {
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      return;
+    }
+    if (typeof document !== "undefined" && document.visibilityState === "hidden") {
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await fetch("/api/notifications");
@@ -24,8 +31,11 @@ export function useNotifications() {
         setNotifications(data.notifications || []);
         setUnreadCount(data.unreadCount || 0);
       }
-    } catch (e) {
-      console.error(e);
+    } catch (e: any) {
+      // Silently ignore network interruptions (ERR_INTERNET_DISCONNECTED, ERR_NETWORK_CHANGED)
+      if (e?.name !== "TypeError") {
+        console.warn("Notifications fetch error:", e);
+      }
     } finally {
       setLoading(false);
     }
@@ -34,7 +44,16 @@ export function useNotifications() {
   useEffect(() => {
     fetchNotifs();
     const interval = setInterval(fetchNotifs, 30000);
-    return () => clearInterval(interval);
+
+    const handleOnline = () => {
+      fetchNotifs();
+    };
+    window.addEventListener("online", handleOnline);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("online", handleOnline);
+    };
   }, [fetchNotifs]);
 
   const markAsRead = async (id: string) => {

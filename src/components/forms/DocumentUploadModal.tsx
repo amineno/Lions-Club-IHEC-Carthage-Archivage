@@ -79,6 +79,11 @@ export default function DocumentUploadModal({
       return;
     }
 
+    if (file && file.size > 4.4 * 1024 * 1024) {
+      setError(`Le fichier (${(file.size / (1024 * 1024)).toFixed(1)} Mo) dépasse la limite de téléversement direct (4.5 Mo). Veuillez réduire sa taille.`);
+      return;
+    }
+
     setLoading(true);
     setError(null);
     setProgress(10);
@@ -104,7 +109,10 @@ export default function DocumentUploadModal({
               body: formData,
             });
             if (!res.ok) {
-              const err = await res.json();
+              if (res.status === 413) {
+                throw new Error("Fichier trop lourd pour le serveur (limite de 4.5 Mo).");
+              }
+              const err = await res.json().catch(() => ({}));
               throw new Error(err.error || "Erreur upload");
             }
             return res.json();
@@ -114,7 +122,13 @@ export default function DocumentUploadModal({
       onSuccess?.(result.document || result);
       setTimeout(handleClose, 400);
     } catch (e: any) {
-      setError(e?.message || "Erreur lors de l'envoi");
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        setError("Connexion Internet indisponible. Veuillez vérifier votre réseau et réessayer.");
+      } else if (e?.name === "TypeError" && (e?.message?.includes("fetch") || e?.message?.includes("network"))) {
+        setError("La connexion réseau a été interrompue. Veuillez vérifier votre connexion et réessayer.");
+      } else {
+        setError(e?.message || "Erreur lors de l'envoi");
+      }
     } finally {
       setLoading(false);
     }

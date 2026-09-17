@@ -75,6 +75,14 @@ export default function UploadActionDocumentModal({
       return;
     }
 
+    const totalBytes = selectedFiles.reduce((acc, f) => acc + f.size, 0);
+    if (totalBytes > 4.4 * 1024 * 1024) {
+      setError(
+        `Le volume total des fichiers sélectionnés (${(totalBytes / (1024 * 1024)).toFixed(1)} Mo) dépasse la limite par envoi (4.5 Mo). Veuillez téléverser les fichiers un par un ou réduire leur résolution.`
+      );
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -99,6 +107,9 @@ export default function UploadActionDocumentModal({
       });
 
       if (!res.ok) {
+        if (res.status === 413) {
+          throw new Error("Fichier trop lourd pour le serveur (limite de 4.5 Mo par envoi). Veuillez réduire la taille ou envoyer un par un.");
+        }
         const err = await res.json().catch(() => ({}));
         throw new Error(err.error || "Erreur lors du téléversement du document");
       }
@@ -112,7 +123,13 @@ export default function UploadActionDocumentModal({
       handleClose();
       onSuccess();
     } catch (err: any) {
-      setError(err.message || "Impossible d'enregistrer le document");
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        setError("Connexion Internet indisponible. Veuillez vérifier votre réseau et réessayer.");
+      } else if (err?.name === "TypeError" && (err?.message?.includes("fetch") || err?.message?.includes("network"))) {
+        setError("La connexion réseau a été interrompue pendant l'envoi. Veuillez vérifier votre connexion et réessayer.");
+      } else {
+        setError(err.message || "Impossible d'enregistrer le document");
+      }
     } finally {
       setLoading(false);
     }

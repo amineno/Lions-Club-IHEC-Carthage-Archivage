@@ -7,8 +7,9 @@ async function main() {
   console.log("🌱 Seed des données de démonstration en cours...");
 
   // ===== MOTS DE PASSE HACHÉS =====
-  const hashAdmin = await bcrypt.hash("admin123", 12);
-  const hashMembre = await bcrypt.hash("membre123", 12);
+  const hashSecret = await bcrypt.hash("Secret2025!", 12);
+  const hashBureau = await bcrypt.hash("Bureau2025!", 12);
+  const hashMembre = await bcrypt.hash("Membre2025!", 12);
 
   // ===== MANDATS =====
   const mandatActif = await prisma.mandat.upsert({
@@ -69,23 +70,49 @@ async function main() {
   // ===== UTILISATEURS =====
   const membreSecretaire = membres.find((m) => m.nom === "Sarra Ben Ali");
   const membreTresorier = membres.find((m) => m.nom === "Ahmed Miled");
+  const membrePresident = membres.find((m) => m.nom === "Youssef Ben Salem");
 
   await prisma.user.upsert({
     where: { email: "secretaire@lions-ihec.tn" },
-    update: {},
+    update: {
+      password: hashSecret,
+      role: "secretaire",
+      statut: true,
+    },
     create: {
       email: "secretaire@lions-ihec.tn",
-      password: hashAdmin,
+      password: hashSecret,
       nom: "Mariem Meddeb",
-      role: "admin",
+      role: "secretaire",
       statut: true,
       memberId: membreSecretaire?.id,
     },
   });
 
   await prisma.user.upsert({
+    where: { email: "bureau@lions-ihec.tn" },
+    update: {
+      password: hashBureau,
+      role: "bureau_executif",
+      statut: true,
+    },
+    create: {
+      email: "bureau@lions-ihec.tn",
+      password: hashBureau,
+      nom: "Bureau Exécutif",
+      role: "bureau_executif",
+      statut: true,
+      memberId: membrePresident?.id,
+    },
+  });
+
+  await prisma.user.upsert({
     where: { email: "membre@lions-ihec.tn" },
-    update: {},
+    update: {
+      password: hashMembre,
+      role: "membre",
+      statut: true,
+    },
     create: {
       email: "membre@lions-ihec.tn",
       password: hashMembre,
