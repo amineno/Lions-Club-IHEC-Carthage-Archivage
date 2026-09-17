@@ -6,6 +6,7 @@ import UploadZone from "@/components/ui/UploadZone";
 import { SECTION_LABELS } from "@/lib/utils";
 import { useUser } from "@/hooks/useUser";
 import type { DocumentSection, VisibiliteLevel } from "@/types";
+import { uploadFileDirectToSupabase } from "@/lib/clientUpload";
 
 interface DocumentUploadModalProps {
   open: boolean;
@@ -79,8 +80,8 @@ export default function DocumentUploadModal({
       return;
     }
 
-    if (file && file.size > 4.4 * 1024 * 1024) {
-      setError(`Le fichier (${(file.size / (1024 * 1024)).toFixed(1)} Mo) dépasse la limite de téléversement direct (4.5 Mo). Veuillez réduire sa taille.`);
+    if (file && file.size > 50 * 1024 * 1024) {
+      setError(`Le fichier (${(file.size / (1024 * 1024)).toFixed(1)} Mo) dépasse la limite maximale autorisée de 50 Mo.`);
       return;
     }
 
@@ -89,31 +90,41 @@ export default function DocumentUploadModal({
     setProgress(10);
 
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("nom", nom);
-      formData.append("section", section);
-      formData.append("tags", tags);
-      if (isSecretary) formData.append("visibilite", visibilite);
-      if (eventId) formData.append("eventId", eventId);
-      if (memberId) formData.append("memberId", memberId);
-      if (partnerId) formData.append("partnerId", partnerId);
-
-      setProgress(40);
-
       const result = onSubmit
-        ? await onSubmit(formData)
+        ? await (async () => {
+            const formData = new FormData();
+            formData.append("file", file);
+            formData.append("nom", nom);
+            formData.append("section", section);
+            formData.append("tags", tags);
+            if (isSecretary) formData.append("visibilite", visibilite);
+            if (eventId) formData.append("eventId", eventId);
+            if (memberId) formData.append("memberId", memberId);
+            if (partnerId) formData.append("partnerId", partnerId);
+            return onSubmit(formData);
+          })()
         : await (async () => {
+            const uploaded = await uploadFileDirectToSupabase(file, section, (p) => setProgress(p));
             const res = await fetch("/api/documents", {
               method: "POST",
-              body: formData,
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                nom: nom.trim(),
+                section,
+                tags: tags
+                  .split(",")
+                  .map((t) => t.trim().toLowerCase())
+                  .filter(Boolean),
+                visibilite: isSecretary ? visibilite : "MEMBRES",
+                eventId: eventId || null,
+                memberId: memberId || null,
+                partnerId: partnerId || null,
+                uploadedFiles: [uploaded],
+              }),
             });
             if (!res.ok) {
-              if (res.status === 413) {
-                throw new Error("Fichier trop lourd pour le serveur (limite de 4.5 Mo).");
-              }
               const err = await res.json().catch(() => ({}));
-              throw new Error(err.error || "Erreur upload");
+              throw new Error(err.error || "Erreur lors de l'enregistrement");
             }
             return res.json();
           })();

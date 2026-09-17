@@ -6,6 +6,7 @@ import { POSTES_CLUB, TYPES_ACTION, VISIBILITE_CONFIG, formatFileSize } from "@/
 import { useUser } from "@/hooks/useUser";
 import { useToast } from "@/components/ui/Toast";
 import type { VisibiliteLevel } from "@/types";
+import { uploadFileDirectToSupabase } from "@/lib/clientUpload";
 
 interface UploadActionDocumentModalProps {
   open: boolean;
@@ -31,6 +32,7 @@ export default function UploadActionDocumentModal({
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [uploadStatus, setUploadStatus] = useState<string | null>(null);
 
   if (!open) return null;
 
@@ -56,6 +58,7 @@ export default function UploadActionDocumentModal({
     setDescription("");
     setSelectedFiles([]);
     setError(null);
+    setUploadStatus(null);
     setLoading(false);
   };
 
@@ -75,48 +78,61 @@ export default function UploadActionDocumentModal({
       return;
     }
 
-    const totalBytes = selectedFiles.reduce((acc, f) => acc + f.size, 0);
-    if (totalBytes > 4.4 * 1024 * 1024) {
-      setError(
-        `Le volume total des fichiers sélectionnés (${(totalBytes / (1024 * 1024)).toFixed(1)} Mo) dépasse la limite par envoi (4.5 Mo). Veuillez téléverser les fichiers un par un ou réduire leur résolution.`
-      );
-      return;
+    // Check 50MB limit per file
+    const MAX_FILE_SIZE = 50 * 1024 * 1024;
+    for (const f of selectedFiles) {
+      if (f.size > MAX_FILE_SIZE) {
+        setError(
+          `Le fichier « ${f.name} » (${(f.size / (1024 * 1024)).toFixed(1)} Mo) dépasse la limite autorisée de 50 Mo.`
+        );
+        return;
+      }
     }
 
     setLoading(true);
     setError(null);
 
     try {
-      const formData = new FormData();
-      formData.append("nom", nom.trim());
-      formData.append("section", "EVENEMENTS");
-      formData.append("poste", poste === "Autre / Général" && customPoste.trim() ? customPoste.trim() : poste);
-      formData.append("typeAction", typeAction);
-      if (dateAction) formData.append("dateAction", dateAction);
-      if (description.trim()) formData.append("description", description.trim());
-      if (isSecretary) formData.append("visibilite", visibilite);
+      // 1. Direct upload each file to Supabase Storage (supports up to 50MB, bypasses Vercel gateway limit)
+      const uploadedFiles = [];
+      for (let i = 0; i < selectedFiles.length; i++) {
+        const file = selectedFiles[i];
+        setUploadStatus(
+          selectedFiles.length > 1
+            ? `Envoi du fichier ${i + 1}/${selectedFiles.length} vers le cloud (${(file.size / (1024 * 1024)).toFixed(1)} Mo)...`
+            : `Envoi vers le stockage cloud (${(file.size / (1024 * 1024)).toFixed(1)} Mo)...`
+        );
 
-      // Append all selected files
-      selectedFiles.forEach((file) => {
-        formData.append("files", file);
-      });
+        const uploaded = await uploadFileDirectToSupabase(file, "evenements");
+        uploadedFiles.push(uploaded);
+      }
 
+      setUploadStatus("Enregistrement dans la bibliothèque...");
+
+      // 2. Save metadata via lightweight JSON request
       const res = await fetch("/api/documents", {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nom: nom.trim(),
+          section: "EVENEMENTS",
+          poste: poste === "Autre / Général" && customPoste.trim() ? customPoste.trim() : poste,
+          typeAction,
+          dateAction: dateAction || null,
+          description: description.trim() || null,
+          visibilite: isSecretary ? visibilite : "MEMBRES",
+          uploadedFiles,
+        }),
       });
 
       if (!res.ok) {
-        if (res.status === 413) {
-          throw new Error("Fichier trop lourd pour le serveur (limite de 4.5 Mo par envoi). Veuillez réduire la taille ou envoyer un par un.");
-        }
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Erreur lors du téléversement du document");
+        throw new Error(err.error || "Erreur lors de l'enregistrement du document");
       }
 
       showToast(
         selectedFiles.length > 1
-          ? `${selectedFiles.length} fichiers ajoutés avec succès !`
+          ? `${selectedFiles.length} fichiers ajoutés avec succès (jusqu'à 50 Mo acceptés) !`
           : "Document ajouté avec succès à la bibliothèque !",
         "success"
       );
@@ -132,6 +148,7 @@ export default function UploadActionDocumentModal({
       }
     } finally {
       setLoading(false);
+      setUploadStatus(null);
     }
   };
 
@@ -356,6 +373,37 @@ export default function UploadActionDocumentModal({
             </div>
           )}
         </div>
+
+        {loading && uploadStatus && (
+          <div
+            style={{
+              padding: "10px 14px",
+              background: "rgba(2, 62, 138, 0.08)",
+              border: "1px solid rgba(2, 62, 138, 0.2)",
+              borderRadius: 8,
+              fontSize: 13,
+              color: "var(--navy)",
+              fontWeight: 500,
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              marginTop: 16,
+            }}
+          >
+            <span
+              style={{
+                width: 14,
+                height: 14,
+                border: "2px solid var(--navy)",
+                borderTopColor: "transparent",
+                borderRadius: "50%",
+                display: "inline-block",
+                animation: "spin 0.8s linear infinite",
+              }}
+            />
+            {uploadStatus}
+          </div>
+        )}
 
         {/* MODAL FOOTER */}
         <div className="modal-footer" style={{ marginTop: 20 }}>

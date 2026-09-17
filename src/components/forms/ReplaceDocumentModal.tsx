@@ -4,6 +4,7 @@ import { useState } from "react";
 import Modal from "@/components/ui/Modal";
 import UploadZone from "@/components/ui/UploadZone";
 import { useToast } from "@/components/ui/Toast";
+import { uploadFileDirectToSupabase } from "@/lib/clientUpload";
 
 interface ReplaceDocumentModalProps {
   open: boolean;
@@ -36,16 +37,23 @@ export default function ReplaceDocumentModal({
       return;
     }
 
+    if (file.size > 50 * 1024 * 1024) {
+      setError(`Le fichier (${(file.size / (1024 * 1024)).toFixed(1)} Mo) dépasse la limite maximale autorisée de 50 Mo.`);
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
     try {
-      const formData = new FormData();
-      formData.append("file", file);
+      // 1. Direct upload to Supabase Storage up to 50MB
+      const uploaded = await uploadFileDirectToSupabase(file, "documents");
 
+      // 2. Update document via JSON
       const res = await fetch(`/api/documents/${doc.id}/replace`, {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(uploaded),
       });
 
       if (!res.ok) {
@@ -53,13 +61,19 @@ export default function ReplaceDocumentModal({
         throw new Error(err.error || "Échec du remplacement du fichier");
       }
 
-      showToast("Fichier remplacé avec succès !", "success");
+      showToast("Fichier remplacé avec succès (jusqu'à 50 Mo supportés) !", "success");
       setFile(null);
       onSuccess();
       onClose();
     } catch (err: any) {
-      setError(err.message || "Erreur lors du remplacement du fichier");
-      showToast(err.message || "Erreur lors du remplacement", "error");
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        setError("Connexion Internet indisponible. Veuillez vérifier votre réseau et réessayer.");
+      } else if (err?.name === "TypeError" && (err?.message?.includes("fetch") || err?.message?.includes("network"))) {
+        setError("La connexion réseau a été interrompue. Veuillez vérifier votre connexion et réessayer.");
+      } else {
+        setError(err.message || "Erreur lors du remplacement du fichier");
+        showToast(err.message || "Erreur lors du remplacement", "error");
+      }
     } finally {
       setLoading(false);
     }

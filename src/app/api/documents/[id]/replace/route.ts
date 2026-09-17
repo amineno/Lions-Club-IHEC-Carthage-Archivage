@@ -24,8 +24,49 @@ export async function POST(
     if (!doc) return NextResponse.json({ error: "Document introuvable" }, { status: 404 });
 
     const contentType = req.headers.get("content-type") || "";
+
+    // 1. Direct 50MB upload via JSON
+    if (contentType.includes("application/json")) {
+      const body = await req.json();
+      const { fileUrl, storagePath, mimeType, typeFichier, taille } = body;
+
+      if (!fileUrl || !storagePath) {
+        return NextResponse.json({ error: "Données de fichier manquantes" }, { status: 400 });
+      }
+
+      // Delete previous physical file if it exists
+      if (doc.storagePath && doc.storagePath !== storagePath) {
+        await deleteFile(doc.storagePath);
+      }
+
+      const updated = await prisma.document.update({
+        where: { id: params.id },
+        data: {
+          fileUrl,
+          storagePath,
+          typeFichier: typeFichier || "DOC",
+          mimeType: mimeType || "application/octet-stream",
+          taille: taille || 0,
+        },
+      });
+
+      await createAuditLog(session.user.id, "REPLACE_FILE", "Document", doc.id, {
+        nom: doc.nom,
+        ancienFichier: doc.storagePath,
+        nouveauFichier: storagePath,
+      });
+
+      return NextResponse.json({
+        document: {
+          ...updated,
+          tags: parseTags(updated.tags),
+        },
+      });
+    }
+
+    // 2. Fallback multipart
     if (!contentType.includes("multipart/form-data")) {
-      return NextResponse.json({ error: "Multipart attendu" }, { status: 400 });
+      return NextResponse.json({ error: "Format attendu: JSON ou Multipart" }, { status: 400 });
     }
 
     const formData = await req.formData();

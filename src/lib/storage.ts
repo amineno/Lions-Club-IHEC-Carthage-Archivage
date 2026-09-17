@@ -147,6 +147,40 @@ export async function uploadFile(
   }
 }
 
+/**
+ * Generate a signed upload URL to allow direct browser-to-Supabase uploads up to 50MB
+ */
+export async function createSignedUpload(
+  originalName: string,
+  subfolder = "documents"
+): Promise<{ signedUrl: string; storagePath: string; publicUrl: string }> {
+  if (!isRealSupabase || !supabase) {
+    throw new Error("Supabase Storage n'est pas configuré");
+  }
+
+  const cleanName = sanitizeFilename(originalName);
+  const timestamp = Date.now();
+  const storagePath = `${subfolder}/${timestamp}-${cleanName}`;
+
+  const { data, error } = await supabase.storage
+    .from(bucketName)
+    .createSignedUploadUrl(storagePath);
+
+  if (error || !data) {
+    throw new Error(error?.message || "Impossible de générer l'URL de téléversement signée");
+  }
+
+  const { data: urlData } = supabase.storage
+    .from(bucketName)
+    .getPublicUrl(storagePath);
+
+  return {
+    signedUrl: data.signedUrl,
+    storagePath,
+    publicUrl: urlData.publicUrl,
+  };
+}
+
 export async function deleteFile(storagePath: string): Promise<boolean> {
   // Delete local file if it exists
   try {

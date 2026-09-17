@@ -81,8 +81,106 @@ export async function POST(req: Request) {
 
   try {
     const contentType = req.headers.get("content-type") || "";
+
+    // Resolve uploader user in DB
+    const validUser =
+      (await prisma.user.findFirst({
+        where: {
+          OR: [
+            { id: session.user.id },
+            { email: session.user.email },
+          ],
+        },
+      })) ||
+      (await prisma.user.findFirst({ where: { role: { in: ["secretaire", "admin"] } } }));
+    const uploaderId = validUser?.id || session.user.id;
+
+    // 1. DIRECT JSON UPLOAD (Used for direct 50MB browser uploads via signed URLs)
+    if (contentType.includes("application/json")) {
+      const body = await req.json();
+      const {
+        nom = "",
+        section = "DOCUMENTS_OFFICIELS",
+        poste = null,
+        typeAction = null,
+        description = null,
+        dateAction: dateActionRaw = null,
+        visibilite: rawVisibilite = "MEMBRES",
+        tags = [],
+        eventId = null,
+        memberId = null,
+        partnerId = null,
+        uploadedFiles = [],
+      } = body;
+
+      if (!nom.trim()) {
+        return NextResponse.json({ error: "Le nom / titre est requis" }, { status: 400 });
+      }
+      if (!Array.isArray(uploadedFiles) || uploadedFiles.length === 0) {
+        return NextResponse.json({ error: "Aucun fichier téléversé" }, { status: 400 });
+      }
+
+      let visibilite = "MEMBRES";
+      if (isSecretary(session.user.role) && rawVisibilite) {
+        visibilite = String(rawVisibilite);
+      }
+
+      const dateAction = dateActionRaw ? new Date(dateActionRaw) : null;
+      const createdDocs = [];
+
+      for (let i = 0; i < uploadedFiles.length; i++) {
+        const fileInfo = uploadedFiles[i];
+        const docNom = uploadedFiles.length > 1
+          ? `${nom.trim()} (${i + 1}/${uploadedFiles.length})`
+          : nom.trim();
+
+        const document = await prisma.document.create({
+          data: {
+            nom: docNom,
+            section: section,
+            typeFichier: fileInfo.typeFichier || "DOC",
+            mimeType: fileInfo.mimeType || "application/octet-stream",
+            taille: fileInfo.taille || 0,
+            visibilite,
+            poste: poste || null,
+            typeAction: typeAction || null,
+            dateAction,
+            description: description || null,
+            tags: JSON.stringify(tags || []),
+            fileUrl: fileInfo.fileUrl,
+            storagePath: fileInfo.storagePath,
+            uploaderId,
+            eventId: eventId || undefined,
+            memberId: memberId || undefined,
+            partnerId: partnerId || undefined,
+          },
+        });
+
+        await createAuditLog(uploaderId, "UPLOAD", "Document", document.id, {
+          nom: document.nom,
+          section: document.section,
+          visibilite: document.visibilite,
+        });
+
+        createdDocs.push({ ...document, tags: parseTags(document.tags) });
+      }
+
+      await notifyAdmins(
+        `Nouveau document ajouté : ${nom.trim()}`,
+        "document",
+        "Document",
+        createdDocs[0]?.id
+      );
+
+      return NextResponse.json({
+        document: createdDocs[0],
+        documents: createdDocs,
+      }, { status: 201 });
+    }
+
+    // 2. MULTIPART FORM DATA (Fallback for small files)
     if (!contentType.includes("multipart/form-data")) {
-      return NextResponse.json({ error: "Multipart attendu" }, { status: 400 });
+      return NextResponse.json({ error: "Format de requête invalide" }, { status: 400 });
     }
 
     const formData = await req.formData();
@@ -140,19 +238,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Champs invalides", details: parsed.error.flatten() }, { status: 400 });
     }
 
-    // Ensure valid user in DB
-    const validUser =
-      (await prisma.user.findFirst({
-        where: {
-          OR: [
-            { id: session.user.id },
-            { email: session.user.email },
-          ],
-        },
-      })) ||
-      (await prisma.user.findFirst({ where: { role: { in: ["secretaire", "admin"] } } }));
-
-    const uploaderId = validUser?.id || session.user.id;
     const createdDocs = [];
 
     for (let i = 0; i < filesToUpload.length; i++) {
