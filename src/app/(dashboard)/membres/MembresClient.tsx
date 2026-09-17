@@ -12,7 +12,7 @@ import { exportMembersToCSV } from "@/lib/export";
 import EditMemberModal, { MemberData } from "@/components/forms/EditMemberModal";
 
 export default function MembresClient() {
-  const { isAdmin } = useUser();
+  const { isSecretary, canManageMembers } = useUser();
   const { showToast } = useToast();
   const [membres, setMembres] = useState<MemberCardData[]>([]);
   const [mandats, setMandats] = useState<{ id: string; anneeDebut: number; anneeFin: number; actif: boolean }[]>([]);
@@ -145,7 +145,7 @@ export default function MembresClient() {
             Exporter (Excel)
           </button>
 
-          {isAdmin && (
+          {canManageMembers && (
             <button className="upload-new-btn" style={{ marginLeft: 0 }} onClick={() => setModal(true)}>
               <svg viewBox="0 0 14 14"><path d="M7 1v12M1 7h12" /></svg>
               Ajouter un membre
@@ -163,7 +163,7 @@ export default function MembresClient() {
           {membres.map((m) => (
             <div key={m.id} style={{ position: "relative" }}>
               <MemberCard member={m} onEdit={(member) => setEditTarget(member)} />
-              {isAdmin && (
+              {isSecretary && (
                 <button
                   type="button"
                   className="tbl-del-btn"

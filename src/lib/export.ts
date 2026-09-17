@@ -94,3 +94,39 @@ export function exportEventsToCSV(events: any[]): void {
   const dateStr = new Date().toISOString().slice(0, 10);
   downloadCSV(`actions-evenements-lions-club-${dateStr}.csv`, rows);
 }
+
+/**
+ * Export documents / plans d'action list to Excel-compatible CSV
+ */
+export function exportDocumentsToCSV(documents: any[], filenamePrefix: string = "plans-action"): void {
+  const headers = [
+    "Nom / Titre",
+    "Poste concerné",
+    "Type",
+    "Date associée",
+    "Visibilité",
+    "Format",
+    "Taille",
+    "Ajouté le",
+    "Ajouté par",
+  ];
+
+  const rows: (string | number | null | undefined)[][] = [
+    headers,
+    ...documents.map((d) => [
+      d.nom || d.titre || "",
+      d.poste || "",
+      d.typeAction || d.type || "",
+      d.dateAction ? new Date(d.dateAction).toLocaleDateString("fr-FR") : "",
+      d.visibilite || "MEMBRES",
+      d.fileType || d.mimeType || "",
+      d.taille ? `${Math.round(d.taille / 1024)} Ko` : "",
+      d.createdAt ? new Date(d.createdAt).toLocaleDateString("fr-FR") : "",
+      d.uploader?.nom || "",
+    ]),
+  ];
+
+  const dateStr = new Date().toISOString().slice(0, 10);
+  downloadCSV(`${filenamePrefix}-lions-club-${dateStr}.csv`, rows);
+}
+

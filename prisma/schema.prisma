@@ -60,14 +60,15 @@ model Member {
 }
 
 model MeetingMinute {
-  id         String         @id @default(cuid())
-  titre      String
+  id          String         @id @default(cuid())
+  titre       String
   dateReunion DateTime
-  type       String
-  statut     String         @default("VALIDE")
-  tags       String         @default("[]")
-  createdAt  DateTime       @default(now())
-  updatedAt  DateTime       @updatedAt
+  type        String
+  statut      String         @default("VALIDE")
+  visibilite  String         @default("MEMBRES")
+  tags        String         @default("[]")
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
 
   mandatId   String?
   mandat     Mandat?        @relation(fields: [mandatId], references: [id])
@@ -103,6 +104,11 @@ model Document {
   typeFichier String
   mimeType    String
   taille      Int
+  visibilite  String         @default("MEMBRES")
+  poste       String?
+  typeAction  String?
+  dateAction  DateTime?
+  description String?
   tags        String         @default("[]")
   fileUrl     String
   storagePath String

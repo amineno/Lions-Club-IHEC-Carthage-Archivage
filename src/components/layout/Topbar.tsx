@@ -17,11 +17,27 @@ interface TopbarProps {
 }
 
 export default function Topbar({ onToggleSidebar }: TopbarProps) {
-  const { user, isAdmin } = useUser();
+  const { user } = useUser();
   const { notifications, unreadCount, markAsRead, markAllRead } = useNotifications();
   const [notifOpen, setNotifOpen] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const pathname = usePathname();
+
+  const getRoleBadge = (role?: string) => {
+    switch (role) {
+      case "secretaire":
+      case "admin":
+        return { label: "Secrétaire", avatarCls: "ua-admin", tagCls: "rt-admin" };
+      case "bureau_executif":
+        return { label: "Bureau exécutif", avatarCls: "ua-bureau", tagCls: "rt-bureau" };
+      case "conseil":
+        return { label: "Conseil", avatarCls: "ua-conseil", tagCls: "rt-conseil" };
+      case "membre":
+      default:
+        return { label: "Membre", avatarCls: "ua-user", tagCls: "rt-user" };
+    }
+  };
+  const roleBadge = getRoleBadge(user?.role);
 
   const navItems = [
     { href: "/dashboard", label: "Tableau de bord", icon: "M2 2h5v5H2zm7 0h5v5H9zm-7 7h5v5H2zm7 0h5v5H9z" },
@@ -105,15 +121,15 @@ export default function Topbar({ onToggleSidebar }: TopbarProps) {
           {user && (
             <Link href="/profil" className="user-chip" title="Accéder à mon profil" style={{ textDecoration: "none", cursor: "pointer" }}>
               <div
-                className={`user-avatar ${isAdmin ? "ua-admin" : "ua-user"}`}
+                className={`user-avatar ${roleBadge.avatarCls}`}
               >
                 {getInitials(user.nom)}
               </div>
               <span className="user-name">
                 {user.nom}
               </span>
-              <span className={`role-tag ${isAdmin ? "rt-admin" : "rt-user"}`}>
-                {isAdmin ? "Admin" : "Membre"}
+              <span className={`role-tag ${roleBadge.tagCls}`}>
+                {roleBadge.label}
               </span>
             </Link>
           )}

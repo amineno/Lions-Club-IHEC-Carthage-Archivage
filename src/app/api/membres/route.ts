@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth, requireAdmin } from "@/lib/auth";
+import { auth, requireBureauOrSecretary } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { memberSchema } from "@/lib/validators";
 import { createAuditLog, notifyAdmins } from "@/lib/notifications";
@@ -39,8 +39,8 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const session = await requireAdmin();
-  if (!session) return NextResponse.json({ error: "Accès admin requis" }, { status: 403 });
+  const session = await requireBureauOrSecretary();
+  if (!session) return NextResponse.json({ error: "Accès refusé : Secrétaire ou Bureau exécutif requis" }, { status: 403 });
 
   try {
     const body = await req.json();

@@ -2,13 +2,23 @@
 
 import { useEffect, useState } from "react";
 import { useUser } from "@/hooks/useUser";
-import { formatDate, formatFileSize, SECTION_LABELS, DOC_TYPE_CLASS, TAG_CLASS, parseTags } from "@/lib/utils";
+import {
+  formatDate,
+  formatFileSize,
+  SECTION_LABELS,
+  DOC_TYPE_CLASS,
+  TAG_CLASS,
+  parseTags,
+  VISIBILITE_CONFIG,
+} from "@/lib/utils";
 import DocumentUploadModal from "@/components/forms/DocumentUploadModal";
 import EditDocumentModal from "@/components/forms/EditDocumentModal";
 import DocumentPreviewModal from "@/components/ui/DocumentPreviewModal";
+import ChangeVisibilityModal from "@/components/forms/ChangeVisibilityModal";
+import ReplaceDocumentModal from "@/components/forms/ReplaceDocumentModal";
 import ConfirmModal from "@/components/ui/ConfirmModal";
 import { useToast } from "@/components/ui/Toast";
-import type { DocumentSection } from "@/types";
+import type { DocumentSection, VisibiliteLevel } from "@/types";
 
 interface DocRow {
   id: string;
@@ -18,20 +28,24 @@ interface DocRow {
   tags: any;
   taille: number;
   fileUrl: string;
+  visibilite: VisibiliteLevel;
   createdAt: string;
 }
 
 export default function DocumentsClient() {
-  const { isAdmin } = useUser();
+  const { isSecretary, isAdmin } = useUser();
   const { showToast } = useToast();
   const [rows, setRows] = useState<DocRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [typeF, setTypeF] = useState("");
+  const [filterVisibilite, setFilterVisibilite] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
 
-  // Edit, Preview, and Delete state
+  // Edit, Preview, Replace, Visibility, and Delete state
   const [previewDoc, setPreviewDoc] = useState<DocRow | null>(null);
   const [editingDoc, setEditingDoc] = useState<DocRow | null>(null);
+  const [replaceDoc, setReplaceDoc] = useState<DocRow | null>(null);
+  const [visibilityDoc, setVisibilityDoc] = useState<DocRow | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<DocRow | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -41,6 +55,7 @@ export default function DocumentsClient() {
       const params = new URLSearchParams();
       params.set("section", "DOCUMENTS_OFFICIELS");
       if (typeF) params.set("tag", typeF);
+      if (filterVisibilite) params.set("visibilite", filterVisibilite);
       const res = await fetch(`/api/documents?${params.toString()}`);
       const json = await res.json();
       setRows(json.documents || []);
@@ -53,7 +68,7 @@ export default function DocumentsClient() {
 
   useEffect(() => {
     load();
-  }, [typeF]);
+  }, [typeF, filterVisibilite]);
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
@@ -81,7 +96,7 @@ export default function DocumentsClient() {
         <div className="page-subtitle">Autorisations, correspondances officielles et templates du club</div>
       </div>
 
-      <div className="docs-toolbar">
+      <div className="docs-toolbar" style={{ flexWrap: "wrap", gap: 10 }}>
         <select className="filter-select" value={typeF} onChange={(e) => setTypeF(e.target.value)}>
           <option value="">Tous les types</option>
           <option value="social">Autorisation</option>
@@ -89,12 +104,24 @@ export default function DocumentsClient() {
           <option value="reunion">Template</option>
           <option value="sponsoring">Contrat</option>
         </select>
-        <select className="filter-select">
-          <option>Trier par date ↓</option>
-          <option>Trier par nom</option>
-        </select>
-        {isAdmin && (
-          <button className="upload-new-btn" onClick={() => setModalOpen(true)}>
+
+        {isSecretary && (
+          <select
+            className="filter-select"
+            value={filterVisibilite}
+            onChange={(e) => setFilterVisibilite(e.target.value)}
+          >
+            <option value="">Toutes visibilités</option>
+            <option value="SECRETAIRE">🔒 Secrétaire uniquement</option>
+            <option value="CONSEIL">🏛️ Conseil</option>
+            <option value="BUREAU_EXECUTIF">👔 Bureau exécutif</option>
+            <option value="MEMBRES">👥 Membres</option>
+            <option value="TOUT_LE_MONDE">🌐 Tout le monde</option>
+          </select>
+        )}
+
+        {isSecretary && (
+          <button className="upload-new-btn" style={{ marginLeft: "auto" }} onClick={() => setModalOpen(true)}>
             <svg viewBox="0 0 14 14"><path d="M7 1v12M1 7h12" /></svg>
             Ajouter un document
           </button>
@@ -108,23 +135,25 @@ export default function DocumentsClient() {
             <th>Type</th>
             <th>Date</th>
             <th>Taille</th>
+            <th>Visibilité</th>
             <th>Tags</th>
-            <th>Actions</th>
+            <th style={{ textAlign: "right", paddingRight: 20 }}>Actions</th>
           </tr>
         </thead>
         <tbody>
           {loading && (
             <tr>
-              <td colSpan={6} className="docs-table-empty">Chargement...</td>
+              <td colSpan={7} className="docs-table-empty">Chargement...</td>
             </tr>
           )}
           {!loading && rows.length === 0 && (
             <tr>
-              <td colSpan={6} className="docs-table-empty">Aucun document officiel</td>
+              <td colSpan={7} className="docs-table-empty">Aucun document officiel</td>
             </tr>
           )}
           {rows.map((d) => {
             const tagsList = parseTags(d.tags);
+            const visConfig = VISIBILITE_CONFIG[d.visibilite] || VISIBILITE_CONFIG.MEMBRES;
             return (
               <tr key={d.id}>
                 <td>
@@ -143,13 +172,34 @@ export default function DocumentsClient() {
                 <td>{formatDate(d.createdAt)}</td>
                 <td style={{ color: "var(--text-muted)", fontSize: 12 }}>{formatFileSize(d.taille)}</td>
                 <td>
+                  <span
+                    style={{
+                      background: visConfig.bg,
+                      color: visConfig.color,
+                      fontSize: 11,
+                      padding: "3px 8px",
+                      borderRadius: 10,
+                      fontWeight: 600,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4,
+                      border: `1px solid ${visConfig.border}`,
+                    }}
+                    title={visConfig.description}
+                  >
+                    <span>{visConfig.icon}</span>
+                    <span>{visConfig.label}</span>
+                  </span>
+                </td>
+                <td>
                   {tagsList.slice(0, 2).map((t) => (
                     <span key={t} className={`doc-tag ${TAG_CLASS[t] || "tag-officiel"}`} style={{ marginRight: 4 }}>
                       {t}
                     </span>
                   ))}
                 </td>
-                <td>
+                <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
+                  {/* Voir */}
                   <button
                     type="button"
                     className="tbl-preview-btn"
@@ -158,13 +208,29 @@ export default function DocumentsClient() {
                       setPreviewDoc(d);
                     }}
                   >
-                    Aperçu
+                    Voir
                   </button>
-                  {isAdmin && (
+
+                  {/* Télécharger */}
+                  <a
+                    href={d.fileUrl}
+                    download
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="tbl-preview-btn"
+                    style={{ textDecoration: "none", marginLeft: 6 }}
+                    title="Télécharger"
+                  >
+                    📥
+                  </a>
+
+                  {/* Actions Secrétaire */}
+                  {isSecretary && (
                     <>
                       <button
                         type="button"
                         className="tbl-edit-btn"
+                        style={{ marginLeft: 6 }}
                         onClick={(e) => {
                           e.preventDefault();
                           setEditingDoc(d);
@@ -174,7 +240,32 @@ export default function DocumentsClient() {
                       </button>
                       <button
                         type="button"
+                        className="tbl-edit-btn"
+                        style={{ marginLeft: 6, background: "var(--surface2)", borderColor: "var(--border)" }}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setReplaceDoc(d);
+                        }}
+                        title="Remplacer le fichier source"
+                      >
+                        🔄 Remplacer
+                      </button>
+                      <button
+                        type="button"
+                        className="tbl-edit-btn"
+                        style={{ marginLeft: 6, background: "var(--surface2)", borderColor: "var(--border)" }}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setVisibilityDoc(d);
+                        }}
+                        title="Modifier la visibilité"
+                      >
+                        👁️ Visibilité
+                      </button>
+                      <button
+                        type="button"
                         className="tbl-del-btn"
+                        style={{ marginLeft: 6 }}
                         onClick={(e) => {
                           e.preventDefault();
                           setDeleteTarget(d);
@@ -214,6 +305,22 @@ export default function DocumentsClient() {
         open={!!editingDoc}
         document={editingDoc ? { ...editingDoc, tags: parseTags(editingDoc.tags) } : null}
         onClose={() => setEditingDoc(null)}
+        onSuccess={() => load()}
+      />
+
+      {/* MODAL REMPLACER FICHIER */}
+      <ReplaceDocumentModal
+        open={!!replaceDoc}
+        document={replaceDoc}
+        onClose={() => setReplaceDoc(null)}
+        onSuccess={() => load()}
+      />
+
+      {/* MODAL MODIFIER VISIBILITÉ */}
+      <ChangeVisibilityModal
+        open={!!visibilityDoc}
+        document={visibilityDoc}
+        onClose={() => setVisibilityDoc(null)}
         onSuccess={() => load()}
       />
 

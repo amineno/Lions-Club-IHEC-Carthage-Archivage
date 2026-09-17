@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { auth, getAllowedVisibilities } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { SECTION_LABELS, parseTags } from "@/lib/utils";
 
@@ -11,7 +11,11 @@ export async function GET(req: Request) {
   const limit = parseInt(searchParams.get("limit") || "10");
 
   try {
+    const allowedVisibilities = getAllowedVisibilities(session.user.role);
     const recent = await prisma.document.findMany({
+      where: {
+        visibilite: { in: allowedVisibilities },
+      },
       orderBy: { createdAt: "desc" },
       take: limit,
       select: {
@@ -19,6 +23,8 @@ export async function GET(req: Request) {
         nom: true,
         section: true,
         typeFichier: true,
+        visibilite: true,
+        poste: true,
         tags: true,
         taille: true,
         fileUrl: true,

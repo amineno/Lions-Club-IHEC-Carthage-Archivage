@@ -115,3 +115,70 @@ export const MEMBER_ROLE_LABEL: Record<string, string> = {
   ResponsableCommunication: "Resp. Communication",
   Membre: "Membre",
 };
+
+export const VISIBILITE_CONFIG: Record<
+  string,
+  { label: string; icon: string; bg: string; color: string; border: string; description: string }
+> = {
+  SECRETAIRE: {
+    label: "Secrétaire uniquement",
+    icon: "🔒",
+    bg: "#FEF2F2",
+    color: "#991B1B",
+    border: "#FECACA",
+    description: "Seulement l'administrateur / Secrétaire",
+  },
+  CONSEIL: {
+    label: "Conseil",
+    icon: "🏛️",
+    bg: "#F5F3FF",
+    color: "#5B21B6",
+    border: "#DDD6FE",
+    description: "Membres du Conseil et Secrétaire",
+  },
+  BUREAU_EXECUTIF: {
+    label: "Bureau exécutif",
+    icon: "👔",
+    bg: "#EFF6FF",
+    color: "#1E40AF",
+    border: "#BFDBFE",
+    description: "Membres du Bureau exécutif, Conseil et Secrétaire",
+  },
+  MEMBRES: {
+    label: "Membres",
+    icon: "👥",
+    bg: "#ECFDF5",
+    color: "#065F46",
+    border: "#A7F3D0",
+    description: "Tous les membres connectés du club",
+  },
+  TOUT_LE_MONDE: {
+    label: "Tout le monde",
+    icon: "🌐",
+    bg: "#F3F4F6",
+    color: "#374151",
+    border: "#E5E7EB",
+    description: "Tous les utilisateurs autorisés de la plateforme",
+  },
+};
+
+export const POSTES_CLUB: string[] = [
+  "Secrétaire",
+  "Présidence",
+  "Vice-Présidence",
+  "Trésorerie",
+  "Communication",
+  "Relations Humaines (RH)",
+  "Sponsoring & Partenariats",
+  "Logistique",
+  "Événementiel & Humanitaire",
+  "Protocole",
+  "Autre / Général",
+];
+
+export const TYPES_ACTION: Array<{ value: string; label: string }> = [
+  { value: "Plan d'action", label: "Plan d'action" },
+  { value: "Action", label: "Action" },
+  { value: "Événement", label: "Événement" },
+];
+

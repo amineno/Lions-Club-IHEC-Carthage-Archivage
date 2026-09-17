@@ -2,13 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { useUser } from "@/hooks/useUser";
-import { formatDate, DOC_TYPE_CLASS, TAG_CLASS, parseTags } from "@/lib/utils";
+import { formatDate, DOC_TYPE_CLASS, TAG_CLASS, parseTags, VISIBILITE_CONFIG } from "@/lib/utils";
 import DocumentUploadModal from "@/components/forms/DocumentUploadModal";
 import EditPVModal from "@/components/forms/EditPVModal";
 import DocumentPreviewModal from "@/components/ui/DocumentPreviewModal";
+import ChangeVisibilityModal from "@/components/forms/ChangeVisibilityModal";
 import ConfirmModal from "@/components/ui/ConfirmModal";
 import { useToast } from "@/components/ui/Toast";
-import type { DocumentSection } from "@/types";
+import type { DocumentSection, VisibiliteLevel } from "@/types";
 
 interface PVRow {
   id: string;
@@ -17,22 +18,25 @@ interface PVRow {
   type: string;
   tags: string[];
   statut: string;
-  document?: { id: string; fileUrl: string; typeFichier: string } | null;
+  visibilite: VisibiliteLevel;
+  document?: { id: string; fileUrl: string; typeFichier: string; visibilite?: string } | null;
 }
 
 export default function PVClient() {
-  const { isAdmin } = useUser();
+  const { isSecretary } = useUser();
   const { showToast } = useToast();
   const [rows, setRows] = useState<PVRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterType, setFilterType] = useState("");
   const [filterMandat, setFilterMandat] = useState("");
+  const [filterVisibilite, setFilterVisibilite] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [pvType, setPvType] = useState("Réunion mensuelle");
 
-  // Edit, Preview, and Delete state
+  // Edit, Preview, Visibility, and Delete state
   const [previewDoc, setPreviewDoc] = useState<{ nom: string; fileUrl: string; typeFichier: string; tags?: string[] } | null>(null);
   const [editingPv, setEditingPv] = useState<PVRow | null>(null);
+  const [visibilityDoc, setVisibilityDoc] = useState<{ id: string; nom: string; visibilite?: string } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<PVRow | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -42,6 +46,7 @@ export default function PVClient() {
       const params = new URLSearchParams();
       if (filterType) params.set("type", filterType);
       if (filterMandat) params.set("mandatId", filterMandat);
+      if (filterVisibilite) params.set("visibilite", filterVisibilite);
       const res = await fetch(`/api/pv?${params.toString()}`);
       const json = await res.json();
       setRows(json.pvs || []);
@@ -54,7 +59,7 @@ export default function PVClient() {
 
   useEffect(() => {
     load();
-  }, [filterType, filterMandat]);
+  }, [filterType, filterMandat, filterVisibilite]);
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
@@ -89,7 +94,7 @@ export default function PVClient() {
         </div>
       </div>
 
-      <div className="docs-toolbar">
+      <div className="docs-toolbar" style={{ flexWrap: "wrap", gap: 10 }}>
         <select className="filter-select" value={filterMandat} onChange={(e) => setFilterMandat(e.target.value)}>
           <option value="">Tous les mandats</option>
           <option value="2026-2027">2026–2027</option>
@@ -102,12 +107,24 @@ export default function PVClient() {
           <option value="Assemblée générale">Assemblée générale</option>
           <option value="Bureau">Bureau</option>
         </select>
-        <select className="filter-select">
-          <option>Trier par date ↓</option>
-          <option>Trier par nom</option>
-        </select>
-        {isAdmin && (
-          <button className="upload-new-btn" onClick={() => setModalOpen(true)}>
+
+        {isSecretary && (
+          <select
+            className="filter-select"
+            value={filterVisibilite}
+            onChange={(e) => setFilterVisibilite(e.target.value)}
+          >
+            <option value="">Toutes visibilités</option>
+            <option value="SECRETAIRE">🔒 Secrétaire uniquement</option>
+            <option value="CONSEIL">🏛️ Conseil</option>
+            <option value="BUREAU_EXECUTIF">👔 Bureau exécutif</option>
+            <option value="MEMBRES">👥 Membres</option>
+            <option value="TOUT_LE_MONDE">🌐 Tout le monde</option>
+          </select>
+        )}
+
+        {isSecretary && (
+          <button className="upload-new-btn" style={{ marginLeft: "auto" }} onClick={() => setModalOpen(true)}>
             <svg viewBox="0 0 14 14"><path d="M7 1v12M1 7h12" /></svg>
             Ajouter un PV
           </button>
@@ -120,91 +137,150 @@ export default function PVClient() {
             <th>Document</th>
             <th>Date</th>
             <th>Type</th>
+            <th>Visibilité</th>
             <th>Tags</th>
-            <th>Actions</th>
+            <th style={{ textAlign: "right", paddingRight: 20 }}>Actions</th>
           </tr>
         </thead>
         <tbody>
           {loading && (
             <tr>
-              <td colSpan={5} className="docs-table-empty">Chargement...</td>
+              <td colSpan={6} className="docs-table-empty">Chargement...</td>
             </tr>
           )}
           {!loading && rows.length === 0 && (
             <tr>
-              <td colSpan={5} className="docs-table-empty">Aucun PV pour le moment</td>
+              <td colSpan={6} className="docs-table-empty">Aucun PV pour le moment</td>
             </tr>
           )}
-          {rows.map((pv) => (
-            <tr key={pv.id}>
-              <td>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  {pv.document && (
-                    <div className={`doc-type-badge ${DOC_TYPE_CLASS[pv.document.typeFichier] || "dtb-doc"}`}>
-                      {pv.document.typeFichier}
-                    </div>
-                  )}
-                  <span className="tbl-name">{pv.titre}</span>
-                </div>
-              </td>
-              <td>{formatDate(pv.dateReunion)}</td>
-              <td>
-                <span className={`doc-tag ${pv.type.includes("AG") || pv.type.includes("Assemblée") ? "tag-officiel" : pv.type.includes("Bureau") ? "tag-sponsor" : "tag-reunion"}`}>
-                  {pv.type}
-                </span>
-              </td>
-              <td>
-                {parseTags(pv.tags).slice(0, 2).map((t) => (
-                  <span key={t} className={`doc-tag ${TAG_CLASS[t] || "tag-officiel"}`} style={{ marginRight: 4 }}>
-                    {t}
+          {rows.map((pv) => {
+            const visConfig = VISIBILITE_CONFIG[pv.visibilite] || VISIBILITE_CONFIG.MEMBRES;
+            return (
+              <tr key={pv.id}>
+                <td>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    {pv.document && (
+                      <div className={`doc-type-badge ${DOC_TYPE_CLASS[pv.document.typeFichier] || "dtb-doc"}`}>
+                        {pv.document.typeFichier}
+                      </div>
+                    )}
+                    <span className="tbl-name">{pv.titre}</span>
+                  </div>
+                </td>
+                <td>{formatDate(pv.dateReunion)}</td>
+                <td>
+                  <span className={`doc-tag ${pv.type.includes("AG") || pv.type.includes("Assemblée") ? "tag-officiel" : pv.type.includes("Bureau") ? "tag-sponsor" : "tag-reunion"}`}>
+                    {pv.type}
                   </span>
-                ))}
-              </td>
-              <td>
-                {pv.document && (
-                  <button
-                    type="button"
-                    className="tbl-preview-btn"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setPreviewDoc({
-                        nom: pv.titre,
-                        fileUrl: pv.document!.fileUrl,
-                        typeFichier: pv.document!.typeFichier,
-                        tags: pv.tags,
-                      });
+                </td>
+                <td>
+                  <span
+                    style={{
+                      background: visConfig.bg,
+                      color: visConfig.color,
+                      fontSize: 11,
+                      padding: "3px 8px",
+                      borderRadius: 10,
+                      fontWeight: 600,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4,
+                      border: `1px solid ${visConfig.border}`,
                     }}
+                    title={visConfig.description}
                   >
-                    Aperçu
-                  </button>
-                )}
-                {isAdmin && (
-                  <>
-                    <button
-                      type="button"
-                      className="tbl-edit-btn"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        setEditingPv(pv);
-                      }}
-                    >
-                      Modifier
-                    </button>
-                    <button
-                      type="button"
-                      className="tbl-del-btn"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        setDeleteTarget(pv);
-                      }}
-                    >
-                      Supprimer
-                    </button>
-                  </>
-                )}
-              </td>
-            </tr>
-          ))}
+                    <span>{visConfig.icon}</span>
+                    <span>{visConfig.label}</span>
+                  </span>
+                </td>
+                <td>
+                  {parseTags(pv.tags).slice(0, 2).map((t) => (
+                    <span key={t} className={`doc-tag ${TAG_CLASS[t] || "tag-officiel"}`} style={{ marginRight: 4 }}>
+                      {t}
+                    </span>
+                  ))}
+                </td>
+                <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
+                  {pv.document && (
+                    <>
+                      <button
+                        type="button"
+                        className="tbl-preview-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPreviewDoc({
+                            nom: pv.titre,
+                            fileUrl: pv.document!.fileUrl,
+                            typeFichier: pv.document!.typeFichier,
+                            tags: pv.tags,
+                          });
+                        }}
+                      >
+                        Aperçu
+                      </button>
+                      <a
+                        href={pv.document.fileUrl}
+                        download
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="tbl-preview-btn"
+                        style={{ textDecoration: "none", marginLeft: 6 }}
+                        title="Télécharger"
+                      >
+                        📥
+                      </a>
+                    </>
+                  )}
+                  {isSecretary && (
+                    <>
+                      <button
+                        type="button"
+                        className="tbl-edit-btn"
+                        style={{ marginLeft: 6 }}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setEditingPv(pv);
+                        }}
+                      >
+                        Modifier
+                      </button>
+                      <button
+                        type="button"
+                        className="tbl-edit-btn"
+                        style={{ marginLeft: 6, background: "var(--surface2)", borderColor: "var(--border)" }}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          if (pv.document?.id) {
+                            setVisibilityDoc({
+                              id: pv.document.id,
+                              nom: pv.titre,
+                              visibilite: pv.visibilite,
+                            });
+                          } else {
+                            setEditingPv(pv);
+                          }
+                        }}
+                        title="Modifier la visibilité"
+                      >
+                        👁️ Visibilité
+                      </button>
+                      <button
+                        type="button"
+                        className="tbl-del-btn"
+                        style={{ marginLeft: 6 }}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setDeleteTarget(pv);
+                        }}
+                      >
+                        Supprimer
+                      </button>
+                    </>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
 
@@ -235,6 +311,7 @@ export default function PVClient() {
 
           const titre = fd.get("nom") as string;
           const type = (fd.get("type") as string) || "Réunion mensuelle";
+          const visibilite = (fd.get("visibilite") as string) || "MEMBRES";
           const tagsRaw = (fd.get("tags") as string) || "";
           const tags = tagsRaw.split(",").map((t) => t.trim()).filter(Boolean);
 
@@ -243,43 +320,38 @@ export default function PVClient() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               titre,
-              dateReunion: new Date().toISOString(),
               type,
+              visibilite,
+              dateReunion: new Date().toISOString(),
               tags,
-              statut: "VALIDE",
               documentId: document.id,
+              statut: "VALIDE",
             }),
           });
           if (!resPv.ok) {
-            let msg = "Erreur création PV";
-            try {
-              const err = await resPv.json();
-              if (err?.error && typeof err.error === "string") msg = err.error;
-              if (err?.error?.fieldErrors) msg = "Champs invalides";
-            } catch {}
-            throw new Error(msg);
+            throw new Error("Erreur enregistrement PV");
           }
           return resPv.json();
         }}
         extraFields={
-          <div className="form-group">
+          <div className="form-group" style={{ marginBottom: 14 }}>
             <label className="form-label">Type de réunion</label>
             <select
               className="form-input"
-              style={{ cursor: "pointer" }}
-              id="pv-type-field"
               value={pvType}
               onChange={(e) => setPvType(e.target.value)}
+              style={{ cursor: "pointer" }}
             >
               <option value="Réunion mensuelle">Réunion mensuelle</option>
               <option value="Assemblée générale">Assemblée générale</option>
               <option value="Bureau">Bureau</option>
+              <option value="Comité d'action">Comité d'action</option>
             </select>
           </div>
         }
       />
 
-      {/* MODAL APERÇU PV */}
+      {/* MODAL APERÇU */}
       <DocumentPreviewModal
         open={!!previewDoc}
         document={previewDoc}
@@ -294,7 +366,15 @@ export default function PVClient() {
         onSuccess={() => load()}
       />
 
-      {/* MODAL CONFIRMATION SUPPRESSION */}
+      {/* MODAL MODIFIER VISIBILITÉ */}
+      <ChangeVisibilityModal
+        open={!!visibilityDoc}
+        document={visibilityDoc}
+        onClose={() => setVisibilityDoc(null)}
+        onSuccess={() => load()}
+      />
+
+      {/* MODAL SUPPRESSION */}
       <ConfirmModal
         open={!!deleteTarget}
         onClose={() => !isDeleting && setDeleteTarget(null)}
@@ -304,11 +384,9 @@ export default function PVClient() {
           <>
             Êtes-vous sûr de vouloir supprimer définitivement le procès-verbal{" "}
             <strong>« {deleteTarget?.titre} »</strong> ?
-            <br />
-            Cette action est irréversible.
           </>
         }
-        confirmLabel="Supprimer définitivement"
+        confirmLabel="Supprimer"
         variant="danger"
         loading={isDeleting}
       />

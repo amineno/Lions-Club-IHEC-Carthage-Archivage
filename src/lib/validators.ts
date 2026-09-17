@@ -9,12 +9,17 @@ export const userCreateSchema = z.object({
   email: z.string().email("Email invalide"),
   password: z.string().min(6),
   nom: z.string().min(2, "Nom requis"),
-  role: z.enum(["admin", "membre"]),
+  role: z.enum(["secretaire", "admin", "bureau_executif", "conseil", "membre"]),
 });
 
 export const documentSchema = z.object({
   nom: z.string().min(2, "Nom requis"),
   section: z.enum(["PV", "EVENEMENTS", "DOCUMENTS_OFFICIELS", "MEMBRES", "PARTENAIRES"]),
+  visibilite: z.enum(["SECRETAIRE", "CONSEIL", "BUREAU_EXECUTIF", "MEMBRES", "TOUT_LE_MONDE"]).optional(),
+  poste: z.string().optional().nullable(),
+  typeAction: z.string().optional().nullable(),
+  dateAction: z.coerce.date().optional().nullable(),
+  description: z.string().optional().nullable(),
   tags: z.array(z.string()).optional(),
   eventId: z.string().optional().nullable(),
   memberId: z.string().optional().nullable(),
@@ -25,6 +30,7 @@ export const pvSchema = z.object({
   titre: z.string().min(2),
   dateReunion: z.coerce.date(),
   type: z.string().min(2),
+  visibilite: z.enum(["SECRETAIRE", "CONSEIL", "BUREAU_EXECUTIF", "MEMBRES", "TOUT_LE_MONDE"]).optional(),
   statut: z.enum(["BROUILLON", "VALIDE"]).optional(),
   tags: z.array(z.string()).optional(),
   mandatId: z.string().optional().nullable(),

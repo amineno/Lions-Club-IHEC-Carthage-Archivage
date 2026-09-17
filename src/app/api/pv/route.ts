@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth, requireAdmin } from "@/lib/auth";
+import { auth, requireSecretary, getAllowedVisibilities } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { pvSchema } from "@/lib/validators";
 import { createAuditLog, notifyAdmins } from "@/lib/notifications";
@@ -13,12 +13,25 @@ export async function GET(req: Request) {
   const mandatId = searchParams.get("mandatId");
   const search = searchParams.get("q")?.trim();
   const type = searchParams.get("type");
+  const visibiliteParam = searchParams.get("visibilite")?.trim();
 
   try {
-    const where: any = {};
+    const allowedVisibilities = getAllowedVisibilities(session.user.role);
+    const where: any = {
+      visibilite: { in: allowedVisibilities },
+    };
+
     if (mandatId) where.mandatId = mandatId;
     if (type) where.type = type;
-    if (search) where.titre = { contains: search };
+    if (visibiliteParam && allowedVisibilities.includes(visibiliteParam as any)) {
+      where.visibilite = visibiliteParam;
+    }
+    if (search) {
+      where.OR = [
+        { titre: { contains: search, mode: "insensitive" } },
+        { type: { contains: search, mode: "insensitive" } },
+      ];
+    }
 
     const pvs = await prisma.meetingMinute.findMany({
       where,
@@ -35,8 +48,8 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const session = await requireAdmin();
-  if (!session) return NextResponse.json({ error: "Accès admin requis" }, { status: 403 });
+  const session = await requireSecretary();
+  if (!session) return NextResponse.json({ error: "Accès refusé : seule la Secrétaire peut ajouter des PV" }, { status: 403 });
 
   try {
     const body = await req.json();
@@ -44,19 +57,31 @@ export async function POST(req: Request) {
     if (!parsed.success)
       return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
 
-    const { documentId, ...rest } = body;
+    const { documentId, visibilite, ...rest } = body;
+    const pvVisibilite = visibilite || "MEMBRES";
+
     const pv = await prisma.meetingMinute.create({
       data: {
         ...parsed.data,
+        visibilite: pvVisibilite,
         tags: JSON.stringify(parsed.data.tags || []),
         documentId: documentId || undefined,
       },
     });
 
+    // If attached to a document, keep document visibility in sync
+    if (documentId) {
+      await prisma.document.update({
+        where: { id: documentId },
+        data: { visibilite: pvVisibilite },
+      });
+    }
+
     await Promise.all([
       notifyAdmins(`Nouveau PV ajouté : ${pv.titre}`, "pv", "MeetingMinute", pv.id),
       createAuditLog(session.user.id, "CREATE", "MeetingMinute", pv.id, {
         titre: pv.titre,
+        visibilite: pv.visibilite,
       }),
     ]);
 

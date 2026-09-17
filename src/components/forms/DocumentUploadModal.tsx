@@ -4,7 +4,8 @@ import { useState } from "react";
 import Modal from "@/components/ui/Modal";
 import UploadZone from "@/components/ui/UploadZone";
 import { SECTION_LABELS } from "@/lib/utils";
-import type { DocumentSection } from "@/types";
+import { useUser } from "@/hooks/useUser";
+import type { DocumentSection, VisibiliteLevel } from "@/types";
 
 interface DocumentUploadModalProps {
   open: boolean;
@@ -41,8 +42,10 @@ export default function DocumentUploadModal({
   extraFields,
   onSubmit,
 }: DocumentUploadModalProps) {
+  const { isSecretary } = useUser();
   const [nom, setNom] = useState("");
   const [section, setSection] = useState<DocumentSection>(defaultSection);
+  const [visibilite, setVisibilite] = useState<VisibiliteLevel>("MEMBRES");
   const [tags, setTags] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -52,6 +55,7 @@ export default function DocumentUploadModal({
   const reset = () => {
     setNom("");
     setSection(defaultSection);
+    setVisibilite("MEMBRES");
     setTags("");
     setFile(null);
     setError(null);
@@ -85,6 +89,7 @@ export default function DocumentUploadModal({
       formData.append("nom", nom);
       formData.append("section", section);
       formData.append("tags", tags);
+      if (isSecretary) formData.append("visibilite", visibilite);
       if (eventId) formData.append("eventId", eventId);
       if (memberId) formData.append("memberId", memberId);
       if (partnerId) formData.append("partnerId", partnerId);
@@ -158,6 +163,25 @@ export default function DocumentUploadModal({
             ))}
           </select>
         </div>
+        {isSecretary && (
+          <div className="form-group">
+            <label className="form-label">
+              Niveau de visibilité <span style={{ color: "var(--gold)" }}>★ Secrétaire</span>
+            </label>
+            <select
+              className="form-input"
+              style={{ cursor: "pointer" }}
+              value={visibilite}
+              onChange={(e) => setVisibilite(e.target.value as VisibiliteLevel)}
+            >
+              <option value="MEMBRES">👥 Membres (Tous les membres)</option>
+              <option value="BUREAU_EXECUTIF">👔 Bureau exécutif</option>
+              <option value="CONSEIL">🏛️ Conseil</option>
+              <option value="SECRETAIRE">🔒 Secrétaire uniquement</option>
+              <option value="TOUT_LE_MONDE">🌐 Tout le monde</option>
+            </select>
+          </div>
+        )}
         <div className="form-group">
           <label className="form-label">Tags</label>
           <input

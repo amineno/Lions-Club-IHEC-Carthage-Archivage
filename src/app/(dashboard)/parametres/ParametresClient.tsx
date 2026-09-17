@@ -14,7 +14,7 @@ interface UserRow {
   id: string;
   email: string;
   nom: string;
-  role: "admin" | "membre";
+  role: "secretaire" | "admin" | "bureau_executif" | "conseil" | "membre";
   statut: boolean;
   createdAt: string;
 }
@@ -29,7 +29,7 @@ interface MandatRow {
 }
 
 export default function ParametresClient() {
-  const { isAdmin } = useUser();
+  const { isSecretary } = useUser();
   const { showToast } = useToast();
 
   const [users, setUsers] = useState<UserRow[]>([]);
@@ -69,11 +69,11 @@ export default function ParametresClient() {
   };
 
   useEffect(() => {
-    if (!isAdmin) return;
+    if (!isSecretary) return;
     load();
-  }, [isAdmin]);
+  }, [isSecretary]);
 
-  const changeRole = async (u: UserRow, role: "admin" | "membre") => {
+  const changeRole = async (u: UserRow, role: "secretaire" | "bureau_executif" | "conseil" | "membre") => {
     await fetch("/api/utilisateurs", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -168,11 +168,11 @@ export default function ParametresClient() {
     setAuditModal(true);
   };
 
-  if (!isAdmin) {
+  if (!isSecretary) {
     return (
       <div style={{ padding: 40, textAlign: "center" }}>
         <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 24, color: "var(--navy)", marginBottom: 12 }}>Accès refusé</div>
-        <div style={{ color: "var(--text-muted)", marginBottom: 20 }}>Cette page est réservée aux administrateurs.</div>
+        <div style={{ color: "var(--text-muted)", marginBottom: 20 }}>Cette page est réservée au secrétaire / administrateur.</div>
         <Link href="/dashboard" className="tbl-preview-btn">← Retour au tableau de bord</Link>
       </div>
     );
@@ -310,12 +310,14 @@ export default function ParametresClient() {
                   <td>
                     <select
                       className="filter-select"
-                      style={{ padding: "3px 8px", fontSize: 12, width: "auto" }}
-                      value={u.role}
+                      style={{ padding: "3px 8px", fontSize: 12, width: "auto", fontWeight: 600 }}
+                      value={u.role === "admin" ? "secretaire" : u.role}
                       onChange={(e) => changeRole(u, e.target.value as any)}
                     >
-                      <option value="admin">Administrateur</option>
-                      <option value="membre">Membre</option>
+                      <option value="secretaire">🔒 Secrétaire (Admin)</option>
+                      <option value="bureau_executif">👔 Bureau exécutif</option>
+                      <option value="conseil">🏛️ Conseil</option>
+                      <option value="membre">👥 Membre</option>
                     </select>
                   </td>
                   <td>
@@ -365,10 +367,12 @@ export default function ParametresClient() {
             <input className="form-input" type="password" placeholder="••••••••" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required minLength={6} />
           </div>
           <div className="form-group">
-            <label className="form-label">Rôle</label>
+            <label className="form-label">Rôle d'accès &amp; Visibilité</label>
             <select className="form-input" style={{ cursor: "pointer" }} value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
-              <option value="membre">Membre (lecture seule)</option>
-              <option value="admin">Administrateur (secrétaire - droits complets)</option>
+              <option value="membre">👥 Membre (Consultation documents autorisés)</option>
+              <option value="conseil">🏛️ Conseil (Consultation élargie)</option>
+              <option value="bureau_executif">👔 Bureau exécutif (Gestion membres &amp; consultation)</option>
+              <option value="secretaire">🔒 Secrétaire / Admin principal (Contrôle total &amp; visibilités)</option>
             </select>
           </div>
           <div className="modal-footer">

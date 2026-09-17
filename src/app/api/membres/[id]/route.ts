@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth, requireAdmin } from "@/lib/auth";
+import { auth, requireBureauOrSecretary, requireSecretary } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { createAuditLog } from "@/lib/notifications";
 
@@ -26,8 +26,8 @@ export async function PATCH(
   req: Request,
   { params }: { params: { id: string } }
 ) {
-  const session = await requireAdmin();
-  if (!session) return NextResponse.json({ error: "Accès admin requis" }, { status: 403 });
+  const session = await requireBureauOrSecretary();
+  if (!session) return NextResponse.json({ error: "Accès refusé : Secrétaire ou Bureau exécutif requis" }, { status: 403 });
 
   try {
     const body = await req.json();
@@ -47,8 +47,8 @@ export async function DELETE(
   _req: Request,
   { params }: { params: { id: string } }
 ) {
-  const session = await requireAdmin();
-  if (!session) return NextResponse.json({ error: "Accès admin requis" }, { status: 403 });
+  const session = await requireSecretary();
+  if (!session) return NextResponse.json({ error: "Accès refusé : seule la Secrétaire peut supprimer un membre" }, { status: 403 });
 
   try {
     const member = await prisma.member.delete({ where: { id: params.id } });

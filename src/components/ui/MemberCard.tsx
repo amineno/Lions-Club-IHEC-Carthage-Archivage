@@ -41,7 +41,7 @@ export default function MemberCard({
   member: MemberCardData;
   onEdit?: (member: MemberCardData) => void;
 }) {
-  const { isAdmin } = useUser();
+  const { canManageMembers } = useUser();
   const v = variants[member.nom.length % variants.length];
   const isBureau = member.roleClub === "President" || member.roleClub === "Secretaire" || member.roleClub === "VicePresident";
 
@@ -75,7 +75,7 @@ export default function MemberCard({
         <span style={{ fontSize: "11px", color: member.statut === "ACTIF" ? "var(--success)" : "var(--text-muted)" }}>
           ● {member.statut === "ACTIF" ? "Actif" : "Inactif"}
         </span>
-        {isAdmin ? (
+        {canManageMembers ? (
           <button
             type="button"
             className="tbl-edit-btn"

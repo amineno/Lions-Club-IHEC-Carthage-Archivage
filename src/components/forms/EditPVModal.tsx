@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import Modal from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
+import { useUser } from "@/hooks/useUser";
+import type { VisibiliteLevel } from "@/types";
 
 interface PVData {
   id: string;
@@ -11,6 +13,7 @@ interface PVData {
   type: string;
   tags: string[];
   statut: string;
+  visibilite?: string;
 }
 
 interface EditPVModalProps {
@@ -26,11 +29,13 @@ export default function EditPVModal({
   onClose,
   onSuccess,
 }: EditPVModalProps) {
+  const { isSecretary } = useUser();
   const { showToast } = useToast();
   const [titre, setTitre] = useState("");
   const [dateReunion, setDateReunion] = useState("");
   const [type, setType] = useState("Réunion mensuelle");
   const [statut, setStatut] = useState("VALIDE");
+  const [visibilite, setVisibilite] = useState<VisibiliteLevel>("MEMBRES");
   const [tags, setTags] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -50,6 +55,7 @@ export default function EditPVModal({
       }
       setType(pv.type || "Réunion mensuelle");
       setStatut(pv.statut || "VALIDE");
+      setVisibilite((pv.visibilite as VisibiliteLevel) || "MEMBRES");
       setTags(Array.isArray(pv.tags) ? pv.tags.join(", ") : "");
       setError("");
     }
@@ -73,16 +79,22 @@ export default function EditPVModal({
         .map((t) => t.trim())
         .filter(Boolean);
 
+      const payload: any = {
+        titre: titre.trim(),
+        dateReunion: dateReunion ? new Date(dateReunion).toISOString() : undefined,
+        type,
+        statut,
+        tags: parsedTags,
+      };
+
+      if (isSecretary) {
+        payload.visibilite = visibilite;
+      }
+
       const res = await fetch(`/api/pv/${pv.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          titre: titre.trim(),
-          dateReunion: dateReunion ? new Date(dateReunion).toISOString() : undefined,
-          type,
-          statut,
-          tags: parsedTags,
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
@@ -206,6 +218,27 @@ export default function EditPVModal({
             />
           </div>
         </div>
+
+        {isSecretary && (
+          <div className="form-group" style={{ marginBottom: "16px" }}>
+            <label className="form-label" style={{ fontWeight: 600, fontSize: "13px" }}>
+              Niveau de visibilité <span style={{ color: "var(--gold)" }}>★ Secrétaire</span>
+            </label>
+            <select
+              className="form-input"
+              value={visibilite}
+              onChange={(e) => setVisibilite(e.target.value as VisibiliteLevel)}
+              disabled={loading}
+              style={{ cursor: "pointer" }}
+            >
+              <option value="MEMBRES">👥 Membres (Tous les membres)</option>
+              <option value="BUREAU_EXECUTIF">👔 Bureau exécutif</option>
+              <option value="CONSEIL">🏛️ Conseil</option>
+              <option value="SECRETAIRE">🔒 Secrétaire uniquement</option>
+              <option value="TOUT_LE_MONDE">🌐 Tout le monde</option>
+            </select>
+          </div>
+        )}
 
         <div className="modal-footer" style={{ marginTop: "24px" }}>
           <button

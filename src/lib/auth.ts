@@ -134,19 +134,63 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
   },
 });
 
+import type { VisibiliteLevel } from "@/types";
+
 export async function requireAuth() {
   const session = await auth();
   if (!session) return null;
   return session;
 }
 
-export async function requireAdmin() {
+export function isSecretary(role?: string | null): boolean {
+  return role === "secretaire" || role === "admin";
+}
+
+export function isBureau(role?: string | null): boolean {
+  return role === "bureau_executif";
+}
+
+export function isConseil(role?: string | null): boolean {
+  return role === "conseil";
+}
+
+export function isAdmin(role: Role): boolean {
+  return isSecretary(role);
+}
+
+export async function requireSecretary() {
   const session = await auth();
   if (!session) return null;
-  if (session.user.role !== "admin") return null;
+  if (!isSecretary(session.user.role)) return null;
   return session;
 }
 
-export function isAdmin(role: Role) {
-  return role === "admin";
+export async function requireAdmin() {
+  return requireSecretary();
+}
+
+export async function requireBureauOrSecretary() {
+  const session = await auth();
+  if (!session) return null;
+  if (!isSecretary(session.user.role) && !isBureau(session.user.role)) return null;
+  return session;
+}
+
+export function getAllowedVisibilities(role?: string | null): VisibiliteLevel[] {
+  if (isSecretary(role)) {
+    return ["SECRETAIRE", "CONSEIL", "BUREAU_EXECUTIF", "MEMBRES", "TOUT_LE_MONDE"];
+  }
+  if (role === "conseil") {
+    return ["CONSEIL", "BUREAU_EXECUTIF", "MEMBRES", "TOUT_LE_MONDE"];
+  }
+  if (role === "bureau_executif") {
+    return ["BUREAU_EXECUTIF", "MEMBRES", "TOUT_LE_MONDE"];
+  }
+  return ["MEMBRES", "TOUT_LE_MONDE"];
+}
+
+export function canUserViewDocument(role?: string | null, visibilite?: string | null): boolean {
+  if (!visibilite) return true;
+  const allowed = getAllowedVisibilities(role);
+  return allowed.includes(visibilite as VisibiliteLevel);
 }

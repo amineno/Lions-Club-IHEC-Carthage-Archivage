@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth";
+import { requireSecretary } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { createAuditLog } from "@/lib/notifications";
 import { parseTags } from "@/lib/utils";
@@ -8,8 +8,8 @@ export async function PATCH(
   req: Request,
   { params }: { params: { id: string } }
 ) {
-  const session = await requireAdmin();
-  if (!session) return NextResponse.json({ error: "Accès admin requis" }, { status: 403 });
+  const session = await requireSecretary();
+  if (!session) return NextResponse.json({ error: "Accès refusé : seule la Secrétaire peut modifier un PV" }, { status: 403 });
 
   try {
     const body = await req.json();
@@ -18,6 +18,7 @@ export async function PATCH(
     if (body.dateReunion !== undefined) data.dateReunion = new Date(body.dateReunion);
     if (body.type !== undefined) data.type = body.type;
     if (body.statut !== undefined) data.statut = body.statut;
+    if (body.visibilite !== undefined) data.visibilite = body.visibilite;
     if (body.tags !== undefined) data.tags = JSON.stringify(parseTags(body.tags));
     if (body.mandatId !== undefined) data.mandatId = body.mandatId || null;
     if (body.documentId !== undefined) data.documentId = body.documentId || null;
@@ -27,6 +28,14 @@ export async function PATCH(
       data,
       include: { document: true, mandat: true },
     });
+
+    // If visibility changed and has document, keep document in sync
+    if (body.visibilite && pv.documentId) {
+      await prisma.document.update({
+        where: { id: pv.documentId },
+        data: { visibilite: body.visibilite },
+      });
+    }
 
     await createAuditLog(session.user.id, "UPDATE", "MeetingMinute", pv.id, body);
 
@@ -46,8 +55,8 @@ export async function DELETE(
   _req: Request,
   { params }: { params: { id: string } }
 ) {
-  const session = await requireAdmin();
-  if (!session) return NextResponse.json({ error: "Accès admin requis" }, { status: 403 });
+  const session = await requireSecretary();
+  if (!session) return NextResponse.json({ error: "Accès refusé : seule la Secrétaire peut supprimer un PV" }, { status: 403 });
 
   try {
     const pv = await prisma.meetingMinute.delete({ where: { id: params.id } });

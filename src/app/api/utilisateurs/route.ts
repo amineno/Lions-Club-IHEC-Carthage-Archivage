@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
-import { requireAdmin, auth } from "@/lib/auth";
+import { requireSecretary } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { userCreateSchema } from "@/lib/validators";
 import bcrypt from "bcryptjs";
 import { createAuditLog } from "@/lib/notifications";
 
 export async function GET() {
-  const session = await requireAdmin();
-  if (!session) return NextResponse.json({ error: "Accès admin requis" }, { status: 403 });
+  const session = await requireSecretary();
+  if (!session) return NextResponse.json({ error: "Accès refusé : seule la Secrétaire peut gérer les utilisateurs" }, { status: 403 });
 
   try {
     const users = await prisma.user.findMany({
@@ -23,8 +23,8 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const session = await requireAdmin();
-  if (!session) return NextResponse.json({ error: "Accès admin requis" }, { status: 403 });
+  const session = await requireSecretary();
+  if (!session) return NextResponse.json({ error: "Accès refusé : seule la Secrétaire peut créer des comptes" }, { status: 403 });
 
   try {
     const body = await req.json();
@@ -57,8 +57,8 @@ export async function POST(req: Request) {
 }
 
 export async function PATCH(req: Request) {
-  const session = await requireAdmin();
-  if (!session) return NextResponse.json({ error: "Accès admin requis" }, { status: 403 });
+  const session = await requireSecretary();
+  if (!session) return NextResponse.json({ error: "Accès refusé : seule la Secrétaire peut modifier les utilisateurs" }, { status: 403 });
 
   try {
     const body = await req.json();

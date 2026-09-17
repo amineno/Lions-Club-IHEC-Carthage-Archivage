@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { auth, getAllowedVisibilities } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export async function GET() {
@@ -8,11 +8,12 @@ export async function GET() {
 
   try {
     const BUREAU_ROLES = ["President", "VicePresident", "Secretaire", "Tresorier", "ResponsableCommunication"];
+    const allowedVisibilities = getAllowedVisibilities(session.user.role);
 
     const [
       documentsCount,
       pvCount,
-      eventsCount,
+      plansActionCount,
       membresActifsCount,
       membresBureauCount,
       totalMembresCount,
@@ -22,16 +23,26 @@ export async function GET() {
       lastPV,
       lastMember,
     ] = await Promise.all([
-      prisma.document.count({ where: { section: "DOCUMENTS_OFFICIELS" } }),
-      prisma.meetingMinute.count(),
-      prisma.event.count(),
+      prisma.document.count({
+        where: { section: "DOCUMENTS_OFFICIELS", visibilite: { in: allowedVisibilities } },
+      }),
+      prisma.meetingMinute.count({
+        where: { visibilite: { in: allowedVisibilities } },
+      }),
+      prisma.document.count({
+        where: { section: "EVENEMENTS", visibilite: { in: allowedVisibilities } },
+      }),
       prisma.member.count({ where: { statut: "ACTIF" } }),
       prisma.member.count({ where: { roleClub: { in: BUREAU_ROLES } } }),
       prisma.member.count(),
       prisma.partner.count(),
       prisma.event.count({ where: { statut: "EN_COURS" } }),
       prisma.event.count({ where: { statut: "PLANIFIE" } }),
-      prisma.meetingMinute.findFirst({ orderBy: { dateReunion: "desc" }, select: { dateReunion: true } }),
+      prisma.meetingMinute.findFirst({
+        where: { visibilite: { in: allowedVisibilities } },
+        orderBy: { dateReunion: "desc" },
+        select: { dateReunion: true },
+      }),
       prisma.member.findFirst({ orderBy: { updatedAt: "desc" }, select: { updatedAt: true } }),
     ]);
 
@@ -40,6 +51,7 @@ export async function GET() {
     const docsLastMonth = await prisma.document.count({
       where: {
         section: "DOCUMENTS_OFFICIELS",
+        visibilite: { in: allowedVisibilities },
         createdAt: { gte: lastMonth },
       },
     });
@@ -47,8 +59,8 @@ export async function GET() {
     return NextResponse.json({
       documents: documentsCount,
       pv: pvCount,
-      events: eventsCount,
-      evenements: eventsCount,
+      events: plansActionCount,
+      evenements: plansActionCount,
       membres: membresActifsCount,
       membresBureau: membresBureauCount,
       totalMembres: totalMembresCount,

@@ -27,7 +27,7 @@ const NavIcon = ({ d, circle }: { d: string; circle?: string }) => (
 
 export default function Sidebar({ open = false, onClose }: SidebarProps) {
   const pathname = usePathname();
-  const { isAdmin } = useUser();
+  const { isSecretary } = useUser();
   const [counts, setCounts] = useState<Counts>({
     pv: 0, events: 0, documents: 0, membres: 0, partenaires: 0,
   });
@@ -111,7 +111,7 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
         {counts.partenaires > 0 && <span className="nav-count">{counts.partenaires}</span>}
       </Link>
 
-      {isAdmin && (
+      {isSecretary && (
         <>
           <div className="sidebar-section-label">Administration</div>
           <Link

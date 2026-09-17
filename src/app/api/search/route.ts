@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { auth, getAllowedVisibilities } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(req: Request) {
@@ -11,19 +11,28 @@ export async function GET(req: Request) {
   if (!q) return NextResponse.json({ results: [] });
 
   try {
+    const allowedVisibilities = getAllowedVisibilities(session.user.role);
+
     const [documents, membres, evenements] = await Promise.all([
       prisma.document.findMany({
-        where: { OR: [{ nom: { contains: q } }, { tags: { contains: q.toLowerCase() } }] },
+        where: {
+          visibilite: { in: allowedVisibilities },
+          OR: [
+            { nom: { contains: q, mode: "insensitive" } },
+            { poste: { contains: q, mode: "insensitive" } },
+            { tags: { contains: q.toLowerCase() } },
+          ],
+        },
         take: 10,
-        select: { id: true, nom: true, section: true, createdAt: true },
+        select: { id: true, nom: true, section: true, poste: true, createdAt: true },
       }),
       prisma.member.findMany({
-        where: { OR: [{ nom: { contains: q } }, { email: { contains: q } }] },
+        where: { OR: [{ nom: { contains: q, mode: "insensitive" } }, { email: { contains: q, mode: "insensitive" } }] },
         take: 10,
         select: { id: true, nom: true, roleClub: true },
       }),
       prisma.event.findMany({
-        where: { OR: [{ nom: { contains: q } }, { description: { contains: q } }] },
+        where: { OR: [{ nom: { contains: q, mode: "insensitive" } }, { description: { contains: q, mode: "insensitive" } }] },
         take: 10,
         select: { id: true, nom: true, type: true, date: true },
       }),
