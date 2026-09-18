@@ -28,14 +28,44 @@ export async function POST(req: Request) {
 
   try {
     const body = await req.json();
-    const parsed = userCreateSchema.safeParse(body);
-    if (!parsed.success)
-      return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+    const rawEmail = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+    const rawNom = typeof body.nom === "string" ? body.nom.trim() : "";
+    const rawPassword = typeof body.password === "string" ? body.password : "";
+    const rawRole = typeof body.role === "string" ? body.role.trim() : "membre";
+
+    const parsed = userCreateSchema.safeParse({
+      email: rawEmail,
+      nom: rawNom,
+      password: rawPassword,
+      role: rawRole,
+    });
+
+    if (!parsed.success) {
+      const fieldErrors = parsed.error.flatten().fieldErrors;
+      const errorMsg =
+        fieldErrors.email?.[0] ||
+        fieldErrors.password?.[0] ||
+        fieldErrors.nom?.[0] ||
+        fieldErrors.role?.[0] ||
+        "Données de création de compte invalides";
+      return NextResponse.json({ error: errorMsg, details: fieldErrors }, { status: 400 });
+    }
+
+    // Verify if user already exists
+    const existing = await prisma.user.findUnique({
+      where: { email: parsed.data.email },
+    });
+    if (existing) {
+      return NextResponse.json(
+        { error: `Un compte existe déjà avec l'adresse « ${parsed.data.email} »` },
+        { status: 400 }
+      );
+    }
 
     const hash = await bcrypt.hash(parsed.data.password, 12);
     const user = await prisma.user.create({
       data: {
-        email: parsed.data.email.toLowerCase(),
+        email: parsed.data.email,
         nom: parsed.data.nom,
         password: hash,
         role: parsed.data.role,

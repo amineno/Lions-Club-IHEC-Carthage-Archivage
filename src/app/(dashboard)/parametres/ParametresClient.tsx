@@ -9,6 +9,7 @@ import ConfirmModal from "@/components/ui/ConfirmModal";
 import { useToast } from "@/components/ui/Toast";
 import NewMandatModal from "@/components/forms/NewMandatModal";
 import ManageTagsModal from "@/components/forms/ManageTagsModal";
+import PasswordInput from "@/components/ui/PasswordInput";
 
 interface UserRow {
   id: string;
@@ -146,18 +147,27 @@ export default function ParametresClient() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const payload = {
+      nom: form.nom.trim(),
+      email: form.email.trim().toLowerCase(),
+      password: form.password,
+      role: form.role,
+    };
+
     const res = await fetch("/api/utilisateurs", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
+      body: JSON.stringify(payload),
     });
+    const json = await res.json().catch(() => ({}));
+
     if (res.ok) {
       showToast("Utilisateur créé avec succès !", "success");
       setUserModal(false);
       setForm({ email: "", nom: "", password: "", role: "membre" });
       load();
     } else {
-      showToast("Erreur lors de la création de l'utilisateur", "error");
+      showToast(json.error || "Erreur lors de la création de l'utilisateur", "error");
     }
   };
 
@@ -363,8 +373,14 @@ export default function ParametresClient() {
             <input className="form-input" type="email" placeholder="nom@lions-ihec.tn" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
           </div>
           <div className="form-group">
-            <label className="form-label">Mot de passe temporaire</label>
-            <input className="form-input" type="password" placeholder="••••••••" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required minLength={6} />
+            <label className="form-label">Mot de passe temporaire (min. 6 caractères)</label>
+            <PasswordInput
+              placeholder="••••••••"
+              value={form.password}
+              onChange={(e) => setForm({ ...form, password: e.target.value })}
+              required
+              minLength={6}
+            />
           </div>
           <div className="form-group">
             <label className="form-label">Rôle d'accès &amp; Visibilité</label>

@@ -6,9 +6,9 @@ export const loginSchema = z.object({
 });
 
 export const userCreateSchema = z.object({
-  email: z.string().email("Email invalide"),
-  password: z.string().min(6),
-  nom: z.string().min(2, "Nom requis"),
+  email: z.string().trim().toLowerCase().email("Format d'adresse e-mail invalide"),
+  password: z.string().min(6, "Le mot de passe doit comporter au moins 6 caractères"),
+  nom: z.string().trim().min(2, "Le nom doit comporter au moins 2 caractères"),
   role: z.enum(["secretaire", "admin", "bureau_executif", "conseil", "membre"]),
 });
 

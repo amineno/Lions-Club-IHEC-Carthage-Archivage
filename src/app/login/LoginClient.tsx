@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import LionsEmblem from "@/components/layout/LionsEmblem";
 import Link from "next/link";
+import PasswordInput from "@/components/ui/PasswordInput";
 
 export default function LoginPageClient() {
   const router = useRouter();
@@ -85,9 +86,8 @@ export default function LoginPageClient() {
           </div>
           <div className="form-group">
             <label className="form-label">Mot de passe</label>
-            <input
-              className={`form-input ${error ? "error" : ""}`}
-              type="password"
+            <PasswordInput
+              error={!!error}
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}

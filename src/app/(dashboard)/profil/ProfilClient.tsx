@@ -4,6 +4,22 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useToast } from "@/components/ui/Toast";
 import { getInitials, formatDate } from "@/lib/utils";
+import PasswordInput from "@/components/ui/PasswordInput";
+
+const getRoleLabel = (role?: string) => {
+  switch (role) {
+    case "secretaire":
+    case "admin":
+      return "Secrétaire (Admin)";
+    case "bureau_executif":
+      return "Bureau exécutif";
+    case "conseil":
+      return "Conseil";
+    case "membre":
+    default:
+      return "Membre du Club";
+  }
+};
 
 interface UserProfile {
   id: string;
@@ -186,7 +202,7 @@ export default function ProfilClient() {
 
             <div style={{ display: "flex", justifyContent: "center", gap: 8, marginBottom: 16 }}>
               <span className="doc-tag tag-officiel">
-                {profile?.role === "admin" ? "Administrateur (Secrétaire)" : "Membre du Club"}
+                {getRoleLabel(profile?.role)}
               </span>
               {profile?.roleClub && (
                 <span className="doc-tag tag-sponsor">
@@ -344,13 +360,12 @@ export default function ProfilClient() {
                 <label className="form-label" style={{ fontWeight: 600, fontSize: 13 }}>
                   Mot de passe actuel <span style={{ color: "#DC2626" }}>*</span>
                 </label>
-                <input
-                  type="password"
-                  className="form-input"
-                  placeholder="••••••••"
+                <PasswordInput
+                  placeholder="Saisissez votre mot de passe actuel"
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
                   disabled={savingPassword}
+                  required
                 />
               </div>
 
@@ -359,13 +374,13 @@ export default function ProfilClient() {
                   <label className="form-label" style={{ fontWeight: 600, fontSize: 13 }}>
                     Nouveau mot de passe <span style={{ color: "#DC2626" }}>*</span>
                   </label>
-                  <input
-                    type="password"
-                    className="form-input"
-                    placeholder="••••••••"
+                  <PasswordInput
+                    placeholder="Au moins 6 caractères"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     disabled={savingPassword}
+                    required
+                    minLength={6}
                   />
                 </div>
 
@@ -373,13 +388,13 @@ export default function ProfilClient() {
                   <label className="form-label" style={{ fontWeight: 600, fontSize: 13 }}>
                     Confirmer le mot de passe <span style={{ color: "#DC2626" }}>*</span>
                   </label>
-                  <input
-                    type="password"
-                    className="form-input"
-                    placeholder="••••••••"
+                  <PasswordInput
+                    placeholder="Retapez le nouveau mot de passe"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     disabled={savingPassword}
+                    required
+                    minLength={6}
                   />
                 </div>
               </div>
