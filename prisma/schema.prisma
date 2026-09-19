@@ -29,6 +29,8 @@ model User {
   role        String         @default("membre")
   statut      Boolean        @default(true)
   avatar      String?
+  telephone   String?
+  filiere     String?
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
 

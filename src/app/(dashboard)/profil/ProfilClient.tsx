@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useToast } from "@/components/ui/Toast";
 import { getInitials, formatDate } from "@/lib/utils";
 import PasswordInput from "@/components/ui/PasswordInput";
+import { uploadFileDirectToSupabase } from "@/lib/clientUpload";
 
 const getRoleLabel = (role?: string) => {
   switch (role) {
@@ -27,6 +28,7 @@ interface UserProfile {
   nom: string;
   role: string;
   statut: boolean;
+  avatar: string | null;
   telephone: string | null;
   filiere: string | null;
   roleClub: string | null;
@@ -39,6 +41,11 @@ export default function ProfilClient() {
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Avatar state
+  const [avatar, setAvatar] = useState<string | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   // Form info
   const [nom, setNom] = useState("");
@@ -63,6 +70,7 @@ export default function ProfilClient() {
       setNom(data.user.nom || "");
       setTelephone(data.user.telephone || "");
       setFiliere(data.user.filiere || "");
+      setAvatar(data.user.avatar || null);
     } catch {
       showToast("Impossible de charger vos informations de profil", "error");
     } finally {
@@ -73,6 +81,71 @@ export default function ProfilClient() {
   useEffect(() => {
     loadProfile();
   }, []);
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      showToast("Veuillez sélectionner une image valide (JPG, PNG, WEBP)", "error");
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      showToast("L'image ne doit pas dépasser 10 Mo", "error");
+      return;
+    }
+
+    setUploadingAvatar(true);
+    try {
+      const uploaded = await uploadFileDirectToSupabase(file, "avatars");
+
+      const res = await fetch("/api/profil", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ avatar: uploaded.fileUrl }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Erreur lors de l'enregistrement de la photo");
+
+      setAvatar(uploaded.fileUrl);
+      setProfile((prev) => (prev ? { ...prev, avatar: uploaded.fileUrl } : null));
+      await updateSession({ avatar: uploaded.fileUrl });
+      showToast("Photo de profil mise à jour avec succès !", "success");
+    } catch (err: any) {
+      console.error("Avatar upload error:", err);
+      showToast(err.message || "Erreur lors du téléversement de la photo", "error");
+    } finally {
+      setUploadingAvatar(false);
+      if (avatarInputRef.current) {
+        avatarInputRef.current.value = "";
+      }
+    }
+  };
+
+  const handleRemoveAvatar = async () => {
+    setUploadingAvatar(true);
+    try {
+      const res = await fetch("/api/profil", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ avatar: null }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Erreur lors de la suppression de la photo");
+
+      setAvatar(null);
+      setProfile((prev) => (prev ? { ...prev, avatar: null } : null));
+      await updateSession({ avatar: null });
+      showToast("Photo de profil supprimée avec succès", "success");
+    } catch (err: any) {
+      showToast(err.message || "Erreur lors de la suppression", "error");
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
 
   const handleUpdateInfo = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,9 +169,19 @@ export default function ProfilClient() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Erreur de mise à jour");
 
+      setProfile((prev) =>
+        prev
+          ? {
+              ...prev,
+              nom: nom.trim(),
+              telephone: telephone.trim() || null,
+              filiere: filiere.trim() || null,
+            }
+          : null
+      );
       showToast("Informations personnelles mises à jour !", "success");
       await updateSession({ nom: nom.trim() });
-      loadProfile();
+      await loadProfile();
     } catch (err: any) {
       showToast(err.message || "Erreur de mise à jour", "error");
     } finally {
@@ -174,23 +257,140 @@ export default function ProfilClient() {
         {/* CARTE GAUCHE : RECAPITULATIF UTILISATEUR */}
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
           <div className="stat-card" style={{ padding: 24, textAlign: "center" }}>
-            <div
-              style={{
-                width: 80,
-                height: 80,
-                borderRadius: "50%",
-                background: "linear-gradient(135deg, #0A2E52, #1A4F85)",
-                color: "#C9A227",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: 28,
-                fontWeight: 700,
-                margin: "0 auto 16px auto",
-                boxShadow: "0 4px 12px rgba(10, 46, 82, 0.2)",
-              }}
-            >
-              {initials}
+            {/* AVATAR DISPLAY & UPLOAD */}
+            <div style={{ position: "relative", width: 100, height: 100, margin: "0 auto 16px auto" }}>
+              <div
+                style={{
+                  width: 100,
+                  height: 100,
+                  borderRadius: "50%",
+                  background: "linear-gradient(135deg, #0A2E52, #1A4F85)",
+                  color: "#C9A227",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 34,
+                  fontWeight: 700,
+                  overflow: "hidden",
+                  boxShadow: "0 4px 14px rgba(10, 46, 82, 0.2)",
+                  border: "3px solid #C9A227",
+                  position: "relative",
+                }}
+              >
+                {avatar ? (
+                  <img
+                    src={avatar}
+                    alt={profile?.nom || "Avatar"}
+                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                  />
+                ) : (
+                  initials
+                )}
+
+                {uploadingAvatar && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      backgroundColor: "rgba(10, 46, 82, 0.75)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "#fff",
+                      fontSize: 12,
+                      zIndex: 2,
+                    }}
+                  >
+                    <span
+                      style={{
+                        width: 24,
+                        height: 24,
+                        border: "3px solid #ffffff",
+                        borderTopColor: "transparent",
+                        borderRadius: "50%",
+                        display: "inline-block",
+                        animation: "spin 0.8s linear infinite",
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Camera icon button */}
+              <button
+                type="button"
+                onClick={() => avatarInputRef.current?.click()}
+                disabled={uploadingAvatar}
+                title="Modifier la photo"
+                style={{
+                  position: "absolute",
+                  bottom: 0,
+                  right: 0,
+                  width: 32,
+                  height: 32,
+                  borderRadius: "50%",
+                  backgroundColor: "var(--navy)",
+                  color: "#fff",
+                  border: "2px solid #fff",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: uploadingAvatar ? "not-allowed" : "pointer",
+                  boxShadow: "0 2px 6px rgba(0,0,0,0.25)",
+                }}
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                  <circle cx="12" cy="13" r="4"/>
+                </svg>
+              </button>
+
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/gif"
+                onChange={handleAvatarChange}
+                style={{ display: "none" }}
+              />
+            </div>
+
+            <div style={{ display: "flex", justifyContent: "center", gap: 8, marginBottom: 16 }}>
+              <button
+                type="button"
+                onClick={() => avatarInputRef.current?.click()}
+                disabled={uploadingAvatar}
+                style={{
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: "var(--navy)",
+                  background: "var(--surface2)",
+                  border: "1px solid var(--border)",
+                  borderRadius: 6,
+                  padding: "4px 10px",
+                  cursor: uploadingAvatar ? "not-allowed" : "pointer",
+                }}
+              >
+                {avatar ? "Changer la photo" : "Ajouter une photo"}
+              </button>
+              {avatar && (
+                <button
+                  type="button"
+                  onClick={handleRemoveAvatar}
+                  disabled={uploadingAvatar}
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: "#DC2626",
+                    background: "#FEE2E2",
+                    border: "1px solid #FECACA",
+                    borderRadius: 6,
+                    padding: "4px 10px",
+                    cursor: uploadingAvatar ? "not-allowed" : "pointer",
+                  }}
+                >
+                  Supprimer
+                </button>
+              )}
             </div>
 
             <div style={{ fontSize: 18, fontWeight: 700, color: "var(--navy)", marginBottom: 4 }}>
@@ -200,7 +400,7 @@ export default function ProfilClient() {
               {profile?.email}
             </div>
 
-            <div style={{ display: "flex", justifyContent: "center", gap: 8, marginBottom: 16 }}>
+            <div style={{ display: "flex", justifyContent: "center", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
               <span className="doc-tag tag-officiel">
                 {getRoleLabel(profile?.role)}
               </span>
@@ -210,6 +410,20 @@ export default function ProfilClient() {
                 </span>
               )}
             </div>
+
+            {profile?.telephone && (
+              <div style={{ fontSize: 12, color: "var(--text-mid)", marginBottom: 6, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                <span>📞</span>
+                <span>{profile.telephone}</span>
+              </div>
+            )}
+
+            {profile?.filiere && (
+              <div style={{ fontSize: 12, color: "var(--text-mid)", marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                <span>🎓</span>
+                <span>{profile.filiere}</span>
+              </div>
+            )}
 
             <div style={{ borderTop: "1px solid var(--border)", paddingTop: 14, fontSize: 12, color: "var(--text-light)" }}>
               Compte actif depuis le {profile?.createdAt ? formatDate(profile.createdAt) : "—"}

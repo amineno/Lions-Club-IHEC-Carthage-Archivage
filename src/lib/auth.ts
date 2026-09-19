@@ -95,6 +95,7 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
       if (trigger === "update" && session) {
         token.nom = session.nom ?? token.nom;
         token.role = session.role ?? token.role;
+        if (session.avatar !== undefined) token.avatar = session.avatar;
       }
       return token;
     },

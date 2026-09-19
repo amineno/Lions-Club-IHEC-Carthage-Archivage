@@ -23,9 +23,9 @@ export async function GET() {
         nom: user.nom,
         role: user.role,
         statut: user.statut,
-        avatar: user.avatar,
-        telephone: user.member?.telephone || null,
-        filiere: user.member?.filiere || null,
+        avatar: user.avatar || user.member?.photo || null,
+        telephone: user.telephone || user.member?.telephone || null,
+        filiere: user.filiere || user.member?.filiere || null,
         roleClub: user.member?.roleClub || null,
         createdAt: user.createdAt,
       },
@@ -41,7 +41,7 @@ export async function PATCH(req: Request) {
 
   try {
     const body = await req.json();
-    const { nom, telephone, filiere, currentPassword, newPassword } = body;
+    const { nom, telephone, filiere, avatar, currentPassword, newPassword } = body;
 
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
@@ -51,7 +51,10 @@ export async function PATCH(req: Request) {
     if (!user) return NextResponse.json({ error: "Utilisateur introuvable" }, { status: 404 });
 
     const updateUserData: any = {};
-    if (nom && nom.trim()) updateUserData.nom = nom.trim();
+    if (nom !== undefined && nom.trim()) updateUserData.nom = nom.trim();
+    if (telephone !== undefined) updateUserData.telephone = telephone.trim() || null;
+    if (filiere !== undefined) updateUserData.filiere = filiere.trim() || null;
+    if (avatar !== undefined) updateUserData.avatar = avatar ? String(avatar).trim() : null;
 
     // Password change
     if (newPassword) {
@@ -77,7 +80,7 @@ export async function PATCH(req: Request) {
         );
       }
 
-      updateUserData.password = await bcrypt.hash(newPassword, 10);
+      updateUserData.password = await bcrypt.hash(newPassword, 12);
     }
 
     const updatedUser = await prisma.user.update({
@@ -85,16 +88,36 @@ export async function PATCH(req: Request) {
       data: updateUserData,
     });
 
-    // If member linked, also update member details
-    if (user.memberId) {
+    // Synchronize member details if linked or matching
+    let targetMemberId = user.memberId;
+    if (!targetMemberId) {
+      const matchMember = await prisma.member.findFirst({
+        where: {
+          OR: [
+            { email: user.email },
+            { nom: user.nom },
+          ],
+        },
+      });
+      if (matchMember) {
+        targetMemberId = matchMember.id;
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { memberId: matchMember.id },
+        });
+      }
+    }
+
+    if (targetMemberId) {
       const updateMemberData: any = {};
-      if (nom) updateMemberData.nom = nom.trim();
+      if (nom !== undefined && nom.trim()) updateMemberData.nom = nom.trim();
       if (telephone !== undefined) updateMemberData.telephone = telephone.trim() || null;
       if (filiere !== undefined) updateMemberData.filiere = filiere.trim() || null;
+      if (avatar !== undefined) updateMemberData.photo = avatar ? String(avatar).trim() : null;
 
       if (Object.keys(updateMemberData).length > 0) {
         await prisma.member.update({
-          where: { id: user.memberId },
+          where: { id: targetMemberId },
           data: updateMemberData,
         });
       }
@@ -102,6 +125,9 @@ export async function PATCH(req: Request) {
 
     await createAuditLog(session.user.id, "UPDATE", "User", user.id, {
       nomUpdated: !!nom,
+      telephoneUpdated: telephone !== undefined,
+      filiereUpdated: filiere !== undefined,
+      avatarUpdated: avatar !== undefined,
       passwordUpdated: !!newPassword,
     });
 
@@ -112,6 +138,9 @@ export async function PATCH(req: Request) {
         nom: updatedUser.nom,
         email: updatedUser.email,
         role: updatedUser.role,
+        avatar: updatedUser.avatar,
+        telephone: updatedUser.telephone,
+        filiere: updatedUser.filiere,
       },
     });
   } catch (e: any) {

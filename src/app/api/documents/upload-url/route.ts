@@ -8,15 +8,17 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
   }
 
-  // Check upload permissions: Secretary or Bureau executif
-  const userRole = session.user.role;
-  if (!isSecretary(userRole) && !isBureau(userRole)) {
-    return NextResponse.json({ error: "Accès refusé pour le téléversement" }, { status: 403 });
-  }
-
   try {
     const body = await req.json();
     const { filename, mimeType, size, section = "documents" } = body;
+
+    // Avatars can be uploaded by any authenticated user for their profile.
+    // Other uploads require Secretary or Bureau executif permissions.
+    const isAvatarUpload = section === "avatars" || section?.startsWith?.("avatar");
+    const userRole = session.user.role;
+    if (!isAvatarUpload && !isSecretary(userRole) && !isBureau(userRole)) {
+      return NextResponse.json({ error: "Accès refusé pour le téléversement" }, { status: 403 });
+    }
 
     if (!filename || typeof filename !== "string") {
       return NextResponse.json({ error: "Nom de fichier manquant" }, { status: 400 });

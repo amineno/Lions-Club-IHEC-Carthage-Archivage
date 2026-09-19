@@ -122,8 +122,17 @@ export default function Topbar({ onToggleSidebar }: TopbarProps) {
             <Link href="/profil" className="user-chip" title="Accéder à mon profil" style={{ textDecoration: "none", cursor: "pointer" }}>
               <div
                 className={`user-avatar ${roleBadge.avatarCls}`}
+                style={{ overflow: "hidden", padding: 0 }}
               >
-                {getInitials(user.nom)}
+                {user.avatar ? (
+                  <img
+                    src={user.avatar}
+                    alt={user.nom}
+                    style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }}
+                  />
+                ) : (
+                  getInitials(user.nom)
+                )}
               </div>
               <span className="user-name">
                 {user.nom}
