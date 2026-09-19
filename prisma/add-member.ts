@@ -10,12 +10,14 @@ async function main() {
     where: { email: "membre@lions-ihec.tn" },
     update: {
       password: hashMember,
+      clearPassword: "membre123",
       statut: true,
       role: "membre",
     },
     create: {
       email: "membre@lions-ihec.tn",
       password: hashMember,
+      clearPassword: "membre123",
       nom: "Membre Test",
       role: "membre",
       statut: true,

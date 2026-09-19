@@ -76,12 +76,14 @@ async function main() {
     where: { email: "secretaire@lions-ihec.tn" },
     update: {
       password: hashSecret,
+      clearPassword: "Secret2025!",
       role: "secretaire",
       statut: true,
     },
     create: {
       email: "secretaire@lions-ihec.tn",
       password: hashSecret,
+      clearPassword: "Secret2025!",
       nom: "Mariem Meddeb",
       role: "secretaire",
       statut: true,
@@ -93,12 +95,14 @@ async function main() {
     where: { email: "bureau@lions-ihec.tn" },
     update: {
       password: hashBureau,
+      clearPassword: "Bureau2025!",
       role: "bureau_executif",
       statut: true,
     },
     create: {
       email: "bureau@lions-ihec.tn",
       password: hashBureau,
+      clearPassword: "Bureau2025!",
       nom: "Bureau Exécutif",
       role: "bureau_executif",
       statut: true,
@@ -110,12 +114,14 @@ async function main() {
     where: { email: "membre@lions-ihec.tn" },
     update: {
       password: hashMembre,
+      clearPassword: "Membre2025!",
       role: "membre",
       statut: true,
     },
     create: {
       email: "membre@lions-ihec.tn",
       password: hashMembre,
+      clearPassword: "Membre2025!",
       nom: "Ahmed Miled",
       role: "membre",
       statut: true,

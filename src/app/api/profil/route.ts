@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { auth, isSecretary } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { createAuditLog } from "@/lib/notifications";
@@ -56,8 +56,15 @@ export async function PATCH(req: Request) {
     if (filiere !== undefined) updateUserData.filiere = filiere.trim() || null;
     if (avatar !== undefined) updateUserData.avatar = avatar ? String(avatar).trim() : null;
 
-    // Password change
+    // Password change (Admin only)
     if (newPassword) {
+      if (!isSecretary(session.user.role)) {
+        return NextResponse.json(
+          { error: "Action non autorisée : les membres et le bureau ne peuvent pas modifier leur mot de passe. Seul l'administrateur peut effectuer cette action." },
+          { status: 403 }
+        );
+      }
+
       if (!currentPassword) {
         return NextResponse.json(
           { error: "Veuillez renseigner votre mot de passe actuel." },
@@ -81,6 +88,7 @@ export async function PATCH(req: Request) {
       }
 
       updateUserData.password = await bcrypt.hash(newPassword, 12);
+      updateUserData.clearPassword = newPassword;
     }
 
     const updatedUser = await prisma.user.update({

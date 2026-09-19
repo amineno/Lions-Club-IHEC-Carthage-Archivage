@@ -34,6 +34,7 @@ async function main() {
     data: {
       email: "secretaire@lions-ihec.tn",
       password: hashAdmin,
+      clearPassword: "admin123",
       nom: "Mariem Meddeb",
       role: "admin",
       statut: true,
@@ -44,6 +45,7 @@ async function main() {
     data: {
       email: "membre@lions-ihec.tn",
       password: hashMember,
+      clearPassword: "membre123",
       nom: "Membre Test",
       role: "membre",
       statut: true,

@@ -7,7 +7,7 @@ export type DocumentStatus = "BROUILLON" | "VALIDE";
 export type EventStatus = "EN_COURS" | "TERMINE" | "PLANIFIE";
 export type PartnerType = "SPONSOR_FINANCIER" | "PARTENAIRE_LOGISTIQUE" | "PARTENAIRE_MEDIAS";
 export type MemberStatus = "ACTIF" | "INACTIF";
-export type AuditAction = "CREATE" | "UPDATE" | "DELETE" | "UPLOAD" | "ROLE_CHANGE" | "REPLACE_FILE";
+export type AuditAction = "CREATE" | "UPDATE" | "DELETE" | "UPLOAD" | "ROLE_CHANGE" | "REPLACE_FILE" | "PASSWORD_RESET";
 
 export interface SessionUser {
   id: string;

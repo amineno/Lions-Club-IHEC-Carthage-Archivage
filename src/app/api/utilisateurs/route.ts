@@ -13,7 +13,15 @@ export async function GET() {
     const users = await prisma.user.findMany({
       orderBy: { createdAt: "desc" },
       select: {
-        id: true, email: true, nom: true, role: true, statut: true, createdAt: true, avatar: true, memberId: true,
+        id: true,
+        email: true,
+        nom: true,
+        role: true,
+        statut: true,
+        createdAt: true,
+        avatar: true,
+        memberId: true,
+        clearPassword: true,
       },
     });
     return NextResponse.json({ users });
@@ -68,6 +76,7 @@ export async function POST(req: Request) {
         email: parsed.data.email,
         nom: parsed.data.nom,
         password: hash,
+        clearPassword: parsed.data.password,
         role: parsed.data.role,
       },
     });
@@ -77,7 +86,18 @@ export async function POST(req: Request) {
       role: user.role,
     });
 
-    return NextResponse.json({ user: { id: user.id, email: user.email, nom: user.nom, role: user.role } }, { status: 201 });
+    return NextResponse.json(
+      {
+        user: {
+          id: user.id,
+          email: user.email,
+          nom: user.nom,
+          role: user.role,
+          clearPassword: user.clearPassword,
+        },
+      },
+      { status: 201 }
+    );
   } catch (e: any) {
     if (e?.code === "P2002") {
       return NextResponse.json({ error: "Cet email est déjà utilisé" }, { status: 400 });
@@ -92,7 +112,7 @@ export async function PATCH(req: Request) {
 
   try {
     const body = await req.json();
-    const { id, role, statut } = body;
+    const { id, role, statut, password, newPassword } = body;
     if (!id) return NextResponse.json({ error: "ID requis" }, { status: 400 });
 
     if (id === session.user.id && role && role !== session.user.role) {
@@ -103,11 +123,38 @@ export async function PATCH(req: Request) {
     if (role) data.role = role;
     if (statut !== undefined) data.statut = statut;
 
-    const user = await prisma.user.update({ where: { id }, data });
+    const pwdToSet = (newPassword || password)?.trim();
+    if (pwdToSet) {
+      if (pwdToSet.length < 6) {
+        return NextResponse.json(
+          { error: "Le mot de passe doit comporter au moins 6 caractères" },
+          { status: 400 }
+        );
+      }
+      data.password = await bcrypt.hash(pwdToSet, 12);
+      data.clearPassword = pwdToSet;
+    }
 
-    await createAuditLog(session.user.id, "ROLE_CHANGE", "User", user.id, data);
+    const user = await prisma.user.update({
+      where: { id },
+      data,
+      select: {
+        id: true,
+        email: true,
+        nom: true,
+        role: true,
+        statut: true,
+        clearPassword: true,
+      },
+    });
 
-    return NextResponse.json({ ok: true });
+    await createAuditLog(session.user.id, pwdToSet ? "PASSWORD_RESET" : "ROLE_CHANGE", "User", user.id, {
+      roleUpdated: !!role,
+      statutUpdated: statut !== undefined,
+      passwordUpdated: !!pwdToSet,
+    });
+
+    return NextResponse.json({ ok: true, user });
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || "Erreur serveur" }, { status: 500 });
   }

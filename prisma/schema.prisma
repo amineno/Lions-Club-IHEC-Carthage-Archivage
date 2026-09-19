@@ -24,8 +24,9 @@ model Mandat {
 model User {
   id          String         @id @default(cuid())
   email       String         @unique
-  password    String
-  nom         String
+  password      String
+  clearPassword String?
+  nom           String
   role        String         @default("membre")
   statut      Boolean        @default(true)
   avatar      String?

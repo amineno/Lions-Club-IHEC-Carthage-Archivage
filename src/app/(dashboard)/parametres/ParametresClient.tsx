@@ -17,6 +17,7 @@ interface UserRow {
   nom: string;
   role: "secretaire" | "admin" | "bureau_executif" | "conseil" | "membre";
   statut: boolean;
+  clearPassword?: string | null;
   createdAt: string;
 }
 
@@ -36,6 +37,14 @@ export default function ParametresClient() {
   const [users, setUsers] = useState<UserRow[]>([]);
   const [mandats, setMandats] = useState<MandatRow[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Passwords visibility and edit modal
+  const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({});
+  const [editPasswordTarget, setEditPasswordTarget] = useState<UserRow | null>(null);
+  const [newPasswordVal, setNewPasswordVal] = useState("");
+  const [confirmPasswordVal, setConfirmPasswordVal] = useState("");
+  const [savingPasswordTarget, setIsSavingPasswordTarget] = useState(false);
+  const [passwordEditError, setPasswordEditError] = useState("");
 
   // Mandats deletion
   const [deleteMandatTarget, setDeleteMandatTarget] = useState<MandatRow | null>(null);
@@ -92,6 +101,63 @@ export default function ParametresClient() {
     });
     showToast(`Statut de ${u.nom} modifié`, "success");
     load();
+  };
+
+  const toggleShowPassword = (id: string) => {
+    setShowPasswords((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const copyPassword = (pwd: string) => {
+    navigator.clipboard.writeText(pwd);
+    showToast("Mot de passe copié dans le presse-papier !", "success");
+  };
+
+  const openEditPasswordModal = (u: UserRow) => {
+    setEditPasswordTarget(u);
+    setNewPasswordVal("");
+    setConfirmPasswordVal("");
+    setPasswordEditError("");
+  };
+
+  const handleSavePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordEditError("");
+
+    if (!editPasswordTarget) return;
+
+    if (newPasswordVal.length < 6) {
+      setPasswordEditError("Le mot de passe doit comporter au moins 6 caractères.");
+      return;
+    }
+
+    if (newPasswordVal !== confirmPasswordVal) {
+      setPasswordEditError("Les mots de passe ne correspondent pas.");
+      return;
+    }
+
+    setIsSavingPasswordTarget(true);
+    try {
+      const res = await fetch("/api/utilisateurs", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: editPasswordTarget.id,
+          newPassword: newPasswordVal,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Erreur lors de la modification");
+
+      showToast(`Mot de passe de ${editPasswordTarget.nom} mis à jour avec succès !`, "success");
+      setEditPasswordTarget(null);
+      load();
+    } catch (err: any) {
+      setPasswordEditError(err.message || "Erreur lors de la mise à jour");
+      showToast(err.message || "Erreur mot de passe", "error");
+    } finally {
+      setIsSavingPasswordTarget(false);
+    }
   };
 
   const activateMandat = async (m: MandatRow) => {
@@ -310,7 +376,7 @@ export default function ParametresClient() {
         ) : (
           <table className="docs-table" style={{ border: "none", boxShadow: "none", borderRadius: 0 }}>
             <thead>
-              <tr><th>Nom</th><th>Email</th><th>Rôle</th><th>Statut</th><th>Créé le</th><th>Actions</th></tr>
+              <tr><th>Nom</th><th>Email</th><th>Rôle</th><th>Mot de passe</th><th>Statut</th><th>Créé le</th><th>Actions</th></tr>
             </thead>
             <tbody>
               {users.map((u) => (
@@ -331,6 +397,69 @@ export default function ParametresClient() {
                     </select>
                   </td>
                   <td>
+                    {u.clearPassword ? (
+                      <div
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 6,
+                          background: "var(--surface2)",
+                          padding: "3px 8px",
+                          borderRadius: 6,
+                          border: "1px solid var(--border)",
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontFamily: "monospace",
+                            fontSize: 12,
+                            fontWeight: 600,
+                            color: "var(--navy)",
+                            letterSpacing: showPasswords[u.id] ? "normal" : "2px",
+                          }}
+                        >
+                          {showPasswords[u.id] ? u.clearPassword : "••••••••"}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => toggleShowPassword(u.id)}
+                          title={showPasswords[u.id] ? "Masquer" : "Afficher"}
+                          style={{
+                            background: "none",
+                            border: "none",
+                            cursor: "pointer",
+                            padding: 2,
+                            display: "flex",
+                            alignItems: "center",
+                            fontSize: 13,
+                          }}
+                        >
+                          {showPasswords[u.id] ? "🙈" : "👁️"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => copyPassword(u.clearPassword!)}
+                          title="Copier le mot de passe"
+                          style={{
+                            background: "none",
+                            border: "none",
+                            cursor: "pointer",
+                            padding: 2,
+                            display: "flex",
+                            alignItems: "center",
+                            fontSize: 13,
+                          }}
+                        >
+                          📋
+                        </button>
+                      </div>
+                    ) : (
+                      <span style={{ fontSize: 12, color: "var(--text-light)", fontStyle: "italic" }}>
+                        Non défini
+                      </span>
+                    )}
+                  </td>
+                  <td>
                     <span
                       className={`doc-tag ${u.statut ? "tag-social" : "tag-rh"}`}
                       style={{ cursor: "pointer" }}
@@ -341,13 +470,26 @@ export default function ParametresClient() {
                   </td>
                   <td style={{ fontSize: 12, color: "var(--text-muted)" }}>{formatDate(u.createdAt)}</td>
                   <td>
-                    <button
-                      className="tbl-del-btn"
-                      onClick={() => toggleStatut(u)}
-                      style={{ fontSize: 11 }}
-                    >
-                      {u.statut ? "Désactiver" : "Activer"}
-                    </button>
+                    <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                      <button
+                        type="button"
+                        className="tbl-preview-btn"
+                        onClick={() => openEditPasswordModal(u)}
+                        style={{ fontSize: 11, padding: "3px 8px", display: "flex", alignItems: "center", gap: 4 }}
+                        title="Modifier le mot de passe de ce compte"
+                      >
+                        <span>🔑</span>
+                        <span>Modifier</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="tbl-del-btn"
+                        onClick={() => toggleStatut(u)}
+                        style={{ fontSize: 11 }}
+                      >
+                        {u.statut ? "Désactiver" : "Activer"}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -445,6 +587,92 @@ export default function ParametresClient() {
             </tbody>
           </table>
         )}
+      </Modal>
+
+      {/* MODAL MODIFIER MOT DE PASSE */}
+      <Modal
+        open={!!editPasswordTarget}
+        onClose={() => !savingPasswordTarget && setEditPasswordTarget(null)}
+        title="Modifier le mot de passe"
+        subtitle={editPasswordTarget ? `Définir un nouveau mot de passe pour ${editPasswordTarget.nom} (${editPasswordTarget.email})` : ""}
+      >
+        <form onSubmit={handleSavePassword}>
+          {passwordEditError && (
+            <div
+              style={{
+                padding: "10px 14px",
+                background: "#FEE2E2",
+                color: "#DC2626",
+                borderRadius: 8,
+                fontSize: 13,
+                marginBottom: 16,
+                border: "1px solid #FECACA",
+              }}
+            >
+              {passwordEditError}
+            </div>
+          )}
+
+          <div className="form-group" style={{ marginBottom: 16 }}>
+            <label className="form-label" style={{ fontWeight: 600, fontSize: 13 }}>
+              Nouveau mot de passe <span style={{ color: "#DC2626" }}>*</span>
+            </label>
+            <PasswordInput
+              placeholder="Au moins 6 caractères"
+              value={newPasswordVal}
+              onChange={(e) => setNewPasswordVal(e.target.value)}
+              required
+              minLength={6}
+              disabled={savingPasswordTarget}
+            />
+          </div>
+
+          <div className="form-group" style={{ marginBottom: 20 }}>
+            <label className="form-label" style={{ fontWeight: 600, fontSize: 13 }}>
+              Confirmer le mot de passe <span style={{ color: "#DC2626" }}>*</span>
+            </label>
+            <PasswordInput
+              placeholder="Confirmer le nouveau mot de passe"
+              value={confirmPasswordVal}
+              onChange={(e) => setConfirmPasswordVal(e.target.value)}
+              required
+              minLength={6}
+              disabled={savingPasswordTarget}
+            />
+          </div>
+
+          <div className="modal-footer">
+            <button
+              type="button"
+              className="btn-cancel"
+              onClick={() => setEditPasswordTarget(null)}
+              disabled={savingPasswordTarget}
+            >
+              Annuler
+            </button>
+            <button
+              type="submit"
+              className="btn-submit"
+              disabled={savingPasswordTarget}
+              style={{ display: "flex", alignItems: "center", gap: 8 }}
+            >
+              {savingPasswordTarget && (
+                <span
+                  style={{
+                    width: 14,
+                    height: 14,
+                    border: "2px solid #ffffff",
+                    borderTopColor: "transparent",
+                    borderRadius: "50%",
+                    display: "inline-block",
+                    animation: "spin 0.8s linear infinite",
+                  }}
+                />
+              )}
+              {savingPasswordTarget ? "Enregistrement..." : "Enregistrer le mot de passe"}
+            </button>
+          </div>
+        </form>
       </Modal>
 
       {/* MODAL CONFIRMATION SUPPRESSION MANDAT */}

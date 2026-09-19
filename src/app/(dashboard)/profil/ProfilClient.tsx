@@ -536,112 +536,175 @@ export default function ProfilClient() {
             </form>
           </div>
 
-          {/* FORMULAIRE 2 : MOT DE PASSE */}
+          {/* FORMULAIRE 2 : MOT DE PASSE OU AVERTISSEMENT DE SECURITE */}
           <div className="stat-card" style={{ padding: 24 }}>
-            <h3
-              style={{
-                fontFamily: "'Playfair Display', serif",
-                fontSize: 18,
-                color: "var(--navy)",
-                marginBottom: 6,
-                fontWeight: 700,
-              }}
-            >
-              Sécurité &amp; Mot de passe
-            </h3>
-            <div style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 20 }}>
-              Pour des raisons de sécurité, choisissez un mot de passe robuste comportant au moins 6 caractères
-            </div>
-
-            {passwordError && (
-              <div
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6, flexWrap: "wrap", gap: 8 }}>
+              <h3
                 style={{
-                  padding: "10px 14px",
-                  background: "#FEE2E2",
-                  color: "#DC2626",
-                  borderRadius: 8,
-                  fontSize: 13,
-                  marginBottom: 16,
-                  border: "1px solid #FECACA",
+                  fontFamily: "'Playfair Display', serif",
+                  fontSize: 18,
+                  color: "var(--navy)",
+                  margin: 0,
+                  fontWeight: 700,
                 }}
               >
-                {passwordError}
-              </div>
-            )}
-
-            <form onSubmit={handleUpdatePassword}>
-              <div className="form-group" style={{ marginBottom: 16 }}>
-                <label className="form-label" style={{ fontWeight: 600, fontSize: 13 }}>
-                  Mot de passe actuel <span style={{ color: "#DC2626" }}>*</span>
-                </label>
-                <PasswordInput
-                  placeholder="Saisissez votre mot de passe actuel"
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  disabled={savingPassword}
-                  required
-                />
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20 }}>
-                <div className="form-group">
-                  <label className="form-label" style={{ fontWeight: 600, fontSize: 13 }}>
-                    Nouveau mot de passe <span style={{ color: "#DC2626" }}>*</span>
-                  </label>
-                  <PasswordInput
-                    placeholder="Au moins 6 caractères"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    disabled={savingPassword}
-                    required
-                    minLength={6}
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label" style={{ fontWeight: 600, fontSize: 13 }}>
-                    Confirmer le mot de passe <span style={{ color: "#DC2626" }}>*</span>
-                  </label>
-                  <PasswordInput
-                    placeholder="Retapez le nouveau mot de passe"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    disabled={savingPassword}
-                    required
-                    minLength={6}
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                <button
-                  type="submit"
-                  className="btn-submit"
-                  disabled={savingPassword}
+                Sécurité &amp; Mot de passe
+              </h3>
+              {profile?.role !== "secretaire" && profile?.role !== "admin" && (
+                <span
                   style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    background: "var(--navy-mid)",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    padding: "3px 10px",
+                    borderRadius: 20,
+                    background: "rgba(10, 46, 82, 0.08)",
+                    color: "var(--navy)",
+                    border: "1px solid rgba(10, 46, 82, 0.15)",
                   }}
                 >
-                  {savingPassword && (
-                    <span
-                      style={{
-                        width: 14,
-                        height: 14,
-                        border: "2px solid #ffffff",
-                        borderTopColor: "transparent",
-                        borderRadius: "50%",
-                        display: "inline-block",
-                        animation: "spin 0.8s linear infinite",
-                      }}
+                  🔒 Géré par l&apos;administrateur
+                </span>
+              )}
+            </div>
+
+            {profile?.role === "secretaire" || profile?.role === "admin" ? (
+              <>
+                <div style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 20 }}>
+                  En tant qu&apos;administrateur, vous pouvez modifier votre mot de passe ci-dessous.
+                </div>
+
+                {passwordError && (
+                  <div
+                    style={{
+                      padding: "10px 14px",
+                      background: "#FEE2E2",
+                      color: "#DC2626",
+                      borderRadius: 8,
+                      fontSize: 13,
+                      marginBottom: 16,
+                      border: "1px solid #FECACA",
+                    }}
+                  >
+                    {passwordError}
+                  </div>
+                )}
+
+                <form onSubmit={handleUpdatePassword}>
+                  <div className="form-group" style={{ marginBottom: 16 }}>
+                    <label className="form-label" style={{ fontWeight: 600, fontSize: 13 }}>
+                      Mot de passe actuel <span style={{ color: "#DC2626" }}>*</span>
+                    </label>
+                    <PasswordInput
+                      placeholder="Saisissez votre mot de passe actuel"
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      disabled={savingPassword}
+                      required
                     />
-                  )}
-                  {savingPassword ? "Mise à jour..." : "Modifier le mot de passe"}
-                </button>
+                  </div>
+
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20 }}>
+                    <div className="form-group">
+                      <label className="form-label" style={{ fontWeight: 600, fontSize: 13 }}>
+                        Nouveau mot de passe <span style={{ color: "#DC2626" }}>*</span>
+                      </label>
+                      <PasswordInput
+                        placeholder="Au moins 6 caractères"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        disabled={savingPassword}
+                        required
+                        minLength={6}
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label" style={{ fontWeight: 600, fontSize: 13 }}>
+                        Confirmer le mot de passe <span style={{ color: "#DC2626" }}>*</span>
+                      </label>
+                      <PasswordInput
+                        placeholder="Retapez le nouveau mot de passe"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        disabled={savingPassword}
+                        required
+                        minLength={6}
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                    <button
+                      type="submit"
+                      className="btn-submit"
+                      disabled={savingPassword}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        background: "var(--navy-mid)",
+                      }}
+                    >
+                      {savingPassword && (
+                        <span
+                          style={{
+                            width: 14,
+                            height: 14,
+                            border: "2px solid #ffffff",
+                            borderTopColor: "transparent",
+                            borderRadius: "50%",
+                            display: "inline-block",
+                            animation: "spin 0.8s linear infinite",
+                          }}
+                        />
+                      )}
+                      {savingPassword ? "Mise à jour..." : "Modifier le mot de passe"}
+                    </button>
+                  </div>
+                </form>
+              </>
+            ) : (
+              <div
+                style={{
+                  marginTop: 14,
+                  padding: "18px 20px",
+                  borderRadius: 10,
+                  backgroundColor: "#F8FAFC",
+                  border: "1px solid #E2E8F0",
+                  display: "flex",
+                  gap: 16,
+                  alignItems: "flex-start",
+                }}
+              >
+                <div
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: "50%",
+                    backgroundColor: "rgba(10, 46, 82, 0.08)",
+                    color: "var(--navy)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 20,
+                    flexShrink: 0,
+                  }}
+                >
+                  🛡️
+                </div>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: 14, color: "var(--navy)", marginBottom: 4 }}>
+                    Modification du mot de passe verrouillée
+                  </div>
+                  <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0, lineHeight: 1.5 }}>
+                    Conformément aux règles de gestion de la plateforme, les mots de passe des comptes <strong>membres</strong> et <strong>bureau exécutif</strong> sont centralisés et administrés exclusivement par l&apos;administrateur (Secrétaire Général).
+                  </p>
+                  <p style={{ fontSize: 12, color: "var(--text-light)", marginTop: 8, marginBottom: 0 }}>
+                    Si vous avez besoin de réinitialiser ou de modifier votre mot de passe, veuillez contacter l&apos;administrateur du club à <a href="mailto:secretaire@lions-ihec.tn" style={{ color: "var(--navy)", fontWeight: 600 }}>secretaire@lions-ihec.tn</a>.
+                  </p>
+                </div>
               </div>
-            </form>
+            )}
           </div>
         </div>
       </div>
