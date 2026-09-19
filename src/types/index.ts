@@ -1,7 +1,33 @@
 export type Role = "secretaire" | "admin" | "conseil" | "bureau_executif" | "membre";
 export type VisibiliteLevel = "SECRETAIRE" | "CONSEIL" | "BUREAU_EXECUTIF" | "MEMBRES" | "TOUT_LE_MONDE";
 export type ActionType = "PLAN_ACTION" | "ACTION" | "EVENEMENT";
-export type MemberRole = "President" | "VicePresident" | "Secretaire" | "Tresorier" | "ResponsableCommunication" | "Membre";
+export type MemberRole =
+  | "Président(e)"
+  | "Directeur"
+  | "Secrétaire"
+  | "Adjoint(e) Secrétariat"
+  | "Vice-Président(e)"
+  | "Chef(fe) du Protocole"
+  | "Trésorier(ère)"
+  | "Responsable Ressources Humaines"
+  | "Adjoint(e) Ressources Humaines"
+  | "Responsable Œuvres Sociales"
+  | "Responsable Événementiel"
+  | "Responsable Sponsoring"
+  | "Responsable Logistique"
+  | "Adjoint(e) Logistique"
+  | "Responsable Communication"
+  | "Adjoint(e) Communication"
+  | "Responsable Relations Publiques"
+  | "Membre"
+  | "Alumni"
+  | "Ancien(ne)"
+  | "President"
+  | "VicePresident"
+  | "Secretaire"
+  | "Tresorier"
+  | "ResponsableCommunication"
+  | (string & {});
 export type DocumentSection = "PV" | "EVENEMENTS" | "DOCUMENTS_OFFICIELS" | "MEMBRES" | "PARTENAIRES";
 export type DocumentStatus = "BROUILLON" | "VALIDE";
 export type EventStatus = "EN_COURS" | "TERMINE" | "PLANIFIE";

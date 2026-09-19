@@ -7,7 +7,7 @@ import type { MemberCardData } from "@/components/ui/MemberCard";
 import Modal from "@/components/ui/Modal";
 import ConfirmModal from "@/components/ui/ConfirmModal";
 import { useToast } from "@/components/ui/Toast";
-import { MEMBER_ROLE_LABEL } from "@/lib/utils";
+import { MEMBER_ROLE_LABEL, MEMBER_ROLES_LIST } from "@/lib/utils";
 import { exportMembersToCSV } from "@/lib/export";
 import EditMemberModal, { MemberData } from "@/components/forms/EditMemberModal";
 
@@ -102,8 +102,8 @@ export default function MembresClient() {
       <div className="docs-toolbar">
         <select className="filter-select" value={filterRole} onChange={(e) => setFilterRole(e.target.value)}>
           <option value="">Tous les rôles</option>
-          {Object.entries(MEMBER_ROLE_LABEL).map(([k, v]) => (
-            <option key={k} value={k}>{v}</option>
+          {MEMBER_ROLES_LIST.map((r) => (
+            <option key={r} value={r}>{r}</option>
           ))}
         </select>
         <select className="filter-select" value={filterMandat} onChange={(e) => setFilterMandat(e.target.value)}>
@@ -198,9 +198,9 @@ export default function MembresClient() {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <div className="form-group">
               <label className="form-label">Rôle</label>
-              <select className="form-input" style={{ cursor: "pointer" }} value={form.roleClub} onChange={(e) => setForm({ ...form, roleClub: e.target.value as any })}>
-                {Object.entries(MEMBER_ROLE_LABEL).map(([k, v]) => (
-                  <option key={k} value={k}>{v}</option>
+              <select className="form-input" style={{ cursor: "pointer" }} value={form.roleClub} onChange={(e) => setForm({ ...form, roleClub: e.target.value })}>
+                {MEMBER_ROLES_LIST.map((r) => (
+                  <option key={r} value={r}>{r}</option>
                 ))}
               </select>
             </div>

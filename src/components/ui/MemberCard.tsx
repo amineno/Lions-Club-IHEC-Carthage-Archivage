@@ -43,7 +43,16 @@ export default function MemberCard({
 }) {
   const { canManageMembers } = useUser();
   const v = variants[member.nom.length % variants.length];
-  const isBureau = member.roleClub === "President" || member.roleClub === "Secretaire" || member.roleClub === "VicePresident";
+  const isBureau =
+    member.roleClub === "Président(e)" ||
+    member.roleClub === "President" ||
+    member.roleClub === "Directeur" ||
+    member.roleClub === "Secrétaire" ||
+    member.roleClub === "Secretaire" ||
+    member.roleClub === "Vice-Président(e)" ||
+    member.roleClub === "VicePresident" ||
+    member.roleClub === "Trésorier(ère)" ||
+    member.roleClub === "Tresorier";
 
   return (
     <Link href={`/membres/${member.id}`} className="member-card">
@@ -59,7 +68,7 @@ export default function MemberCard({
         <div>
           <div className="member-name">{member.nom}</div>
           <span className={`member-role-badge ${isBureau ? "mrb-admin" : roleBadgeClass[member.roleClub] ?? "mrb-member"}`}>
-            {MEMBER_ROLE_LABEL[member.roleClub]}
+            {MEMBER_ROLE_LABEL[member.roleClub] || member.roleClub}
           </span>
         </div>
       </div>

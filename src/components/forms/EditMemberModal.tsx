@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Modal from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
-import { MEMBER_ROLE_LABEL } from "@/lib/utils";
+import { MEMBER_ROLE_LABEL, MEMBER_ROLES_LIST } from "@/lib/utils";
 
 export interface MemberData {
   id: string;
@@ -152,8 +152,8 @@ export default function EditMemberModal({
               value={roleClub}
               onChange={(e) => setRoleClub(e.target.value)}
             >
-              {Object.entries(MEMBER_ROLE_LABEL).map(([k, v]) => (
-                <option key={k} value={k}>{v}</option>
+              {MEMBER_ROLES_LIST.map((r) => (
+                <option key={r} value={r}>{r}</option>
               ))}
             </select>
           </div>

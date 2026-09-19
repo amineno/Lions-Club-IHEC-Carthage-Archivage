@@ -107,13 +107,59 @@ export const PARTNER_TYPE_LABEL: Record<string, { label: string; badge: string }
   PARTENAIRE_MEDIAS: { label: "Médias", badge: "tag-reunion" },
 };
 
+export const MEMBER_ROLES_LIST = [
+  "Président(e)",
+  "Directeur",
+  "Secrétaire",
+  "Adjoint(e) Secrétariat",
+  "Vice-Président(e)",
+  "Chef(fe) du Protocole",
+  "Trésorier(ère)",
+  "Responsable Ressources Humaines",
+  "Adjoint(e) Ressources Humaines",
+  "Responsable Œuvres Sociales",
+  "Responsable Événementiel",
+  "Responsable Sponsoring",
+  "Responsable Logistique",
+  "Adjoint(e) Logistique",
+  "Responsable Communication",
+  "Adjoint(e) Communication",
+  "Responsable Relations Publiques",
+  "Membre",
+  "Alumni",
+  "Ancien(ne)",
+] as const;
+
+export type MemberRoleType = (typeof MEMBER_ROLES_LIST)[number];
+
 export const MEMBER_ROLE_LABEL: Record<string, string> = {
-  President: "Président",
-  VicePresident: "Vice-Président",
-  Secretaire: "Secrétaire",
-  Tresorier: "Trésorier",
-  ResponsableCommunication: "Resp. Communication",
+  "Président(e)": "Président(e)",
+  Directeur: "Directeur",
+  Secrétaire: "Secrétaire",
+  "Adjoint(e) Secrétariat": "Adjoint(e) Secrétariat",
+  "Vice-Président(e)": "Vice-Président(e)",
+  "Chef(fe) du Protocole": "Chef(fe) du Protocole",
+  "Trésorier(ère)": "Trésorier(ère)",
+  "Responsable Ressources Humaines": "Responsable Ressources Humaines",
+  "Adjoint(e) Ressources Humaines": "Adjoint(e) Ressources Humaines",
+  "Responsable Œuvres Sociales": "Responsable Œuvres Sociales",
+  "Responsable Événementiel": "Responsable Événementiel",
+  "Responsable Sponsoring": "Responsable Sponsoring",
+  "Responsable Logistique": "Responsable Logistique",
+  "Adjoint(e) Logistique": "Adjoint(e) Logistique",
+  "Responsable Communication": "Responsable Communication",
+  "Adjoint(e) Communication": "Adjoint(e) Communication",
+  "Responsable Relations Publiques": "Responsable Relations Publiques",
   Membre: "Membre",
+  Alumni: "Alumni",
+  "Ancien(ne)": "Ancien(ne)",
+
+  // Alias rétro-compatibles
+  President: "Président(e)",
+  VicePresident: "Vice-Président(e)",
+  Secretaire: "Secrétaire",
+  Tresorier: "Trésorier(ère)",
+  ResponsableCommunication: "Responsable Communication",
 };
 
 export const VISIBILITE_CONFIG: Record<

@@ -51,7 +51,7 @@ export const eventSchema = z.object({
 
 export const memberSchema = z.object({
   nom: z.string().min(2),
-  roleClub: z.enum(["President", "VicePresident", "Secretaire", "Tresorier", "ResponsableCommunication", "Membre"]),
+  roleClub: z.string().min(1, "Rôle requis").default("Membre"),
   email: z.string().email().optional().nullable().or(z.literal("")),
   telephone: z.string().optional().nullable(),
   filiere: z.string().optional().nullable(),
