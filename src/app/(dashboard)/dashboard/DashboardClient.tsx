@@ -306,8 +306,8 @@ export default function DashboardClient() {
           }
         />
         <StatCard
-          value={counts?.membresBureau ?? "-"}
-          label="Membres bureaux"
+          value={counts?.totalMembres ?? counts?.membres ?? counts?.membresBureau ?? "-"}
+          label="Membres"
           trend={
             counts?.lastMemberUpdated
               ? `Mis à jour le ${formatDate(counts.lastMemberUpdated)}`
